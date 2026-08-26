@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert } from '../../types';
 import { TrendingUp, AlertTriangle, Radio, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 
 interface RecentAlertsProps {
@@ -27,15 +28,17 @@ const getSeverityStyles = (severity: string) => {
 };
 
 export const RecentAlerts: React.FC<RecentAlertsProps> = ({ alerts }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-card flex flex-col h-full">
       <div className="p-5 border-b border-slate-100 flex items-center justify-between">
         <h2 className="text-base font-bold text-slate-800">Recent Alerts</h2>
-        <button className="text-sm text-blue-600 font-medium hover:text-blue-700">View All</button>
+        <button onClick={() => navigate('/alerts')} className="text-sm text-blue-600 font-medium hover:text-blue-700">View All</button>
       </div>
       
       <div className="flex-1 p-3 flex flex-col space-y-2 overflow-y-auto">
-        {alerts.map((alert) => {
+        {alerts.slice(0, 4).map((alert) => {
           const Icon = getAlertIcon(alert.type);
           const severityStyle = getSeverityStyles(alert.severity);
           
@@ -63,7 +66,7 @@ export const RecentAlerts: React.FC<RecentAlertsProps> = ({ alerts }) => {
       </div>
 
       <div className="p-4 border-t border-slate-100 text-center">
-        <button className="text-sm text-blue-600 font-semibold hover:text-blue-700 flex items-center justify-center w-full">
+        <button onClick={() => navigate('/alerts')} className="text-sm text-blue-600 font-semibold hover:text-blue-700 flex items-center justify-center w-full">
           View all alerts <span className="ml-1">→</span>
         </button>
       </div>

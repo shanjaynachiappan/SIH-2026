@@ -84,14 +84,35 @@ export const NodePopup: React.FC<NodePopupProps> = ({ node }) => {
 
         {/* Risk Assessment */}
         <div>
-          <span className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide border-b pb-1">Risk Assessment</span>
+          <span className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide border-b pb-1">AI Risk Models</span>
+          
           <div className="flex justify-between items-center text-sm mb-1">
-            <span className="text-slate-500">Risk Score</span>
-            <span className="font-bold text-slate-800">{node.riskScore !== undefined ? Math.round(node.riskScore * 100) : '--'}%</span>
+            <span className="text-slate-500">LSTM Risk</span>
+            <span className={`font-bold uppercase ${node.lstmRisk === 'CRITICAL' ? 'text-red-600' : node.lstmRisk === 'WARNING' ? 'text-orange-500' : 'text-green-600'}`}>{node.lstmRisk || 'N/A'}</span>
           </div>
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-slate-500">Confidence</span>
-            <span className="font-medium text-slate-700">{node.riskConfidence !== undefined ? Math.round(node.riskConfidence * 100) : '--'}%</span>
+          {node.lstmProbabilities && (
+            <div className="text-[10px] text-slate-400 mb-2 flex justify-end gap-2">
+              <span>N:{Math.round(node.lstmProbabilities.NORMAL*100)}%</span>
+              <span>W:{Math.round(node.lstmProbabilities.WARNING*100)}%</span>
+              <span>C:{Math.round(node.lstmProbabilities.CRITICAL*100)}%</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-sm mb-1">
+            <span className="text-slate-500">Random Forest Risk</span>
+            <span className={`font-bold uppercase ${node.rfRisk === 'CRITICAL' ? 'text-red-600' : node.rfRisk === 'WARNING' ? 'text-orange-500' : 'text-green-600'}`}>{node.rfRisk || 'N/A'}</span>
+          </div>
+          {node.rfProbabilities && (
+            <div className="text-[10px] text-slate-400 mb-2 flex justify-end gap-2">
+              <span>N:{Math.round(node.rfProbabilities.NORMAL*100)}%</span>
+              <span>W:{Math.round(node.rfProbabilities.WARNING*100)}%</span>
+              <span>C:{Math.round(node.rfProbabilities.CRITICAL*100)}%</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-sm mt-2 border-t border-slate-100 pt-1">
+            <span className="text-slate-700 font-bold">Final Decision</span>
+            <span className={`font-black uppercase ${node.status === 'critical' ? 'text-red-600' : node.status === 'warning' ? 'text-orange-500' : 'text-green-600'}`}>{node.status}</span>
           </div>
         </div>
 

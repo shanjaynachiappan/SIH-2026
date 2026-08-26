@@ -1,42 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, AlertTriangle, ShieldAlert, Activity, CheckCircle2, Search, Filter, Clock, MapPin, MoreVertical } from 'lucide-react';
-import { mockAlerts } from '../data/mockData';
+import { fetchLiveAlerts } from '../services/apiService';
 import { Alert } from '../types';
 
 export const AlertsPage: React.FC = () => {
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
 
-  // Expand the mock alerts to make the page look fuller
-  const extendedAlerts: Alert[] = [
-    ...mockAlerts,
-    {
-      id: 'A5',
-      title: 'Structural Integrity Warning',
-      description: 'Micro-seismic activity detected in Sector Alpha',
-      timestamp: '1 hour ago',
-      severity: 'critical',
-      type: 'system',
-    },
-    {
-      id: 'A6',
-      title: 'Battery Low',
-      description: 'Node N12 is below 15% battery capacity.',
-      timestamp: '2 hours ago',
-      severity: 'low',
-      type: 'system',
-      nodeId: 'N12'
-    },
-    {
-      id: 'A7',
-      title: 'Rapid Displacement Spike',
-      description: 'Node N05 displacement increased by 5mm in 10 mins.',
-      timestamp: '3 hours ago',
-      severity: 'high',
-      type: 'displacement',
-      nodeId: 'N05'
-    }
-  ];
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadAlerts = async () => {
+      const liveAlerts = await fetchLiveAlerts();
+      if (isMounted) {
+        const mappedAlerts: Alert[] = liveAlerts.map((a: any, idx: number) => {
+          let severity: 'low' | 'medium' | 'high' | 'critical' = 'low';
+          if (a.risk_level === 'CRITICAL') severity = 'critical';
+          else if (a.risk_level === 'WARNING') severity = 'high';
+          
+          return {
+            id: `alert-${idx}`,
+            title: `Safety Level: ${a.risk_level}`,
+            description: `Node ${a.node_id} reported ${a.risk_level} conditions with ${(a.probability * 100).toFixed(1)}% confidence.`,
+            timestamp: new Date(a.timestamp).toLocaleTimeString(),
+            severity: severity,
+            type: 'system',
+            nodeId: a.node_id
+          };
+        });
+        // Sort by most recent first
+        mappedAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setAlerts(mappedAlerts);
+      }
+    };
+    loadAlerts();
+    const interval = setInterval(loadAlerts, 2000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const getSeverityConfig = (severity: string) => {
     switch(severity) {
@@ -52,7 +56,7 @@ export const AlertsPage: React.FC = () => {
     }
   };
 
-  const filteredAlerts = extendedAlerts.filter(alert => {
+  const filteredAlerts = alerts.filter(alert => {
     if (filter !== 'all' && alert.severity !== filter) return false;
     if (search && !alert.title.toLowerCase().includes(search.toLowerCase()) && !alert.description.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -92,7 +96,7 @@ export const AlertsPage: React.FC = () => {
           className={`bg-white rounded-xl border ${filter === 'all' ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'} p-4 shadow-sm cursor-pointer transition-all`}
         >
           <div className="text-xs font-bold text-slate-500 uppercase mb-1">Total Alerts</div>
-          <div className="text-2xl font-black text-slate-800">{extendedAlerts.length}</div>
+          <div className="text-2xl font-black text-slate-800">{alerts.length}</div>
         </div>
         <div 
           onClick={() => setFilter('critical')}
@@ -100,7 +104,7 @@ export const AlertsPage: React.FC = () => {
         >
           <div className="text-xs font-bold text-red-500 uppercase mb-1">Critical</div>
           <div className="text-2xl font-black text-red-600">
-            {extendedAlerts.filter(a => a.severity === 'critical').length}
+            {alerts.filter(a => a.severity === 'critical').length}
           </div>
         </div>
         <div 
@@ -109,7 +113,7 @@ export const AlertsPage: React.FC = () => {
         >
           <div className="text-xs font-bold text-orange-500 uppercase mb-1">High Risk</div>
           <div className="text-2xl font-black text-orange-600">
-            {extendedAlerts.filter(a => a.severity === 'high').length}
+            {alerts.filter(a => a.severity === 'high').length}
           </div>
         </div>
         <div 
@@ -118,7 +122,7 @@ export const AlertsPage: React.FC = () => {
         >
           <div className="text-xs font-bold text-yellow-500 uppercase mb-1">Warnings</div>
           <div className="text-2xl font-black text-yellow-600">
-            {extendedAlerts.filter(a => a.severity === 'medium').length}
+            {alerts.filter(a => a.severity === 'medium').length}
           </div>
         </div>
       </div>

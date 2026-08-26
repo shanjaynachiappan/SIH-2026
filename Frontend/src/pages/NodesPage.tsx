@@ -1,10 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Radio, Battery, BatteryMedium, BatteryLow, Activity, MapPin, Wifi, WifiOff, AlertTriangle, Settings, RefreshCw } from 'lucide-react';
-import { mockNodes } from '../data/mockData';
-
+import { fetchLiveNodes } from '../services/apiService';
+import { MonitoringNode } from '../types';
 export const NodesPage: React.FC = () => {
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
+  const [nodes, setNodes] = useState<MonitoringNode[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadNodes = async () => {
+      const liveNodes = await fetchLiveNodes();
+      if (isMounted) setNodes(liveNodes);
+    };
+    loadNodes();
+    const interval = setInterval(loadNodes, 2000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const getStatusConfig = (status: string) => {
     switch(status.toLowerCase()) {
@@ -23,20 +38,20 @@ export const NodesPage: React.FC = () => {
     return <BatteryLow className="w-4 h-4 text-red-500 animate-pulse" />;
   };
 
-  const filteredNodes = mockNodes.filter(node => {
+  const filteredNodes = nodes.filter(node => {
     if (filter !== 'all') {
       if (filter === 'online' && node.status === 'offline') return false;
       if (filter === 'offline' && node.status !== 'offline') return false;
-      if (filter === 'attention' && !['warning', 'high', 'critical'].includes(node.status)) return false;
+      if (filter === 'attention' && !['warning', 'high', 'critical'].includes(node.status.toLowerCase())) return false;
     }
     if (search && !node.id.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const onlineCount = mockNodes.filter(n => n.status !== 'offline').length;
-  const offlineCount = mockNodes.filter(n => n.status === 'offline').length;
-  const attentionCount = mockNodes.filter(n => ['warning', 'high', 'critical'].includes(n.status)).length;
-  const avgBattery = Math.round(mockNodes.reduce((acc, n) => acc + n.battery, 0) / mockNodes.length);
+  const onlineCount = nodes.filter(n => n.status !== 'offline').length;
+  const offlineCount = nodes.filter(n => n.status === 'offline').length;
+  const attentionCount = nodes.filter(n => ['warning', 'high', 'critical'].includes(n.status.toLowerCase())).length;
+  const avgBattery = nodes.length > 0 ? Math.round(nodes.reduce((acc, n) => acc + n.battery, 0) / nodes.length) : 0;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -79,7 +94,7 @@ export const NodesPage: React.FC = () => {
             <Radio className="w-4 h-4 text-blue-500" />
             <div className="text-xs font-bold text-slate-500 uppercase">Total Nodes</div>
           </div>
-          <div className="text-2xl font-black text-slate-800">{mockNodes.length}</div>
+          <div className="text-2xl font-black text-slate-800">{nodes.length}</div>
         </div>
 
         <div 

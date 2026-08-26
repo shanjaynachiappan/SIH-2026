@@ -7,6 +7,8 @@ export interface RiskScore {
 }
 
 export interface RiskZonePolygon {
+  id?: string;
+  name?: string;
   category: RiskCategory;
   coordinates: [number, number][][];
 }

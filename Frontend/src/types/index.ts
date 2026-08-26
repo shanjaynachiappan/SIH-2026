@@ -15,6 +15,13 @@ export interface MonitoringNode {
   riskScore?: number;
   riskConfidence?: number;
   lastUpdated: string;
+  finalRisk?: string;
+  lstmRisk?: string;
+  lstmProbabilities?: Record<string, number>;
+  rfRisk?: string;
+  rfProbabilities?: Record<string, number>;
+  zoneId?: string;
+  zoneName?: string;
 }
 
 export interface Alert {

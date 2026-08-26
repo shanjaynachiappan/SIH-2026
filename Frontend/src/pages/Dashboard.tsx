@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Download, Radio, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { SummaryCard } from '../components/dashboard/SummaryCard';
 import { LiveMap } from '../components/dashboard/LiveMap';
@@ -10,15 +10,93 @@ import { EnvironmentalTelemetry } from '../components/dashboard/EnvironmentalTel
 
 import { 
   summaryData, 
-  mockNodes, 
-  mockAlerts, 
   deformationTrend, 
   riskDistribution, 
   sensorStatusData, 
   environmentalData 
 } from '../data/mockData';
+import { fetchLiveNodes, fetchLiveAlerts } from '../services/apiService';
+import { MonitoringNode, Alert } from '../types';
 
 export const Dashboard: React.FC = () => {
+  const [nodes, setNodes] = useState<MonitoringNode[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      const liveNodes = await fetchLiveNodes();
+      const liveAlerts = await fetchLiveAlerts();
+      if (isMounted) {
+        setNodes(liveNodes);
+        
+        const mappedAlerts: Alert[] = liveAlerts.map((a: any, idx: number) => {
+          let severity: 'low' | 'medium' | 'high' | 'critical' = 'low';
+          if (a.risk_level === 'CRITICAL') severity = 'critical';
+          else if (a.risk_level === 'WARNING') severity = 'high';
+          
+          return {
+            id: `alert-${idx}`,
+            title: `Safety Level: ${a.risk_level}`,
+            description: `Node ${a.node_id} reported ${a.risk_level} conditions.`,
+            timestamp: new Date(a.timestamp).toLocaleTimeString(),
+            severity: severity,
+            type: 'system',
+            nodeId: a.node_id
+          };
+        });
+        mappedAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setAlerts(mappedAlerts);
+      }
+    };
+    loadData();
+    const interval = setInterval(loadData, 2000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const totalNodes = nodes.length > 0 ? nodes.length : summaryData.totalNodes;
+  const onlineNodes = nodes.length > 0 ? nodes.filter(n => n.status !== 'offline').length : summaryData.onlineNodes;
+  const activeWarnings = nodes.length > 0 ? nodes.filter(n => ['warning', 'high', 'critical'].includes(n.status?.toLowerCase() || '')).length : summaryData.activeWarnings;
+
+  const dynamicRiskDistribution = useMemo(() => {
+    if (nodes.length === 0) return riskDistribution;
+    
+    let low = 0, mod = 0, high = 0, crit = 0;
+    nodes.forEach(n => {
+      const status = (n.status || '').toLowerCase();
+      if (status === 'critical') crit++;
+      else if (status === 'warning') high++;
+      else if (status === 'moderate') mod++;
+      else low++;
+    });
+
+    return [
+      { name: 'Low (0-30%)', value: low, color: '#22c55e' },
+      { name: 'Moderate (30-60%)', value: mod, color: '#eab308' },
+      { name: 'High (60-80%)', value: high, color: '#f97316' },
+      { name: 'Critical (80-100%)', value: crit, color: '#ef4444' }
+    ];
+  }, [nodes]);
+
+  const dynamicNodeStatus = useMemo(() => {
+    if (nodes.length === 0) return sensorStatusData;
+    
+    let online = 0, offline = 0;
+    nodes.forEach(n => {
+      if (n.status === 'offline') offline++;
+      else online++;
+    });
+
+    return [
+      { name: 'Online', value: online, color: '#22c55e' },
+      { name: 'Offline', value: offline, color: '#94a3b8' },
+      { name: 'Maintenance', value: 0, color: '#3b82f6' }
+    ];
+  }, [nodes]);
+
   return (
     <div className="space-y-6">
       {/* Date and Export Controls */}
@@ -39,7 +117,7 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <SummaryCard 
           title="Total Nodes" 
-          value={summaryData.totalNodes} 
+          value={totalNodes} 
           subtitle="Across 1 Panel" 
           icon={Radio} 
           iconBgColor="bg-blue-50" 
@@ -49,7 +127,7 @@ export const Dashboard: React.FC = () => {
         />
         <SummaryCard 
           title="Online Nodes" 
-          value={summaryData.onlineNodes} 
+          value={onlineNodes} 
           subtitle="91.7% Online" 
           icon={CheckCircle2} 
           iconBgColor="bg-emerald-50" 
@@ -59,7 +137,7 @@ export const Dashboard: React.FC = () => {
         />
         <SummaryCard 
           title="Active Warnings" 
-          value={summaryData.activeWarnings} 
+          value={activeWarnings} 
           subtitle="Needs Attention" 
           icon={AlertTriangle} 
           iconBgColor="bg-orange-50" 
@@ -83,18 +161,18 @@ export const Dashboard: React.FC = () => {
       {/* Main Grid: Map and Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <LiveMap nodes={mockNodes} />
+          <LiveMap nodes={nodes} />
         </div>
         <div className="lg:col-span-1">
-          <RecentAlerts alerts={mockAlerts} />
+          <RecentAlerts alerts={alerts} />
         </div>
       </div>
 
       {/* Bottom Grid: Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <DeformationChart data={deformationTrend} />
-        <RiskDistribution data={riskDistribution} total={24} />
-        <NodeStatus data={sensorStatusData} total={24} />
+        <RiskDistribution data={dynamicRiskDistribution} total={totalNodes} />
+        <NodeStatus data={dynamicNodeStatus} total={totalNodes} />
         <EnvironmentalTelemetry data={environmentalData} />
       </div>
     </div>

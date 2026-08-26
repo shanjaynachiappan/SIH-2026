@@ -29,16 +29,11 @@ export const NodeMarkers: React.FC<NodeMarkersProps> = ({ nodes }) => {
               const layer = e.target;
               layer.setRadius(8);
               layer.setStyle({ weight: 3, fillOpacity: 0.9 });
-              // Ensure tooltip opens on hover even with custom event handler
-              if (!layer.isPopupOpen()) {
-                layer.openTooltip();
-              }
             },
             mouseout: (e) => {
               const layer = e.target;
               layer.setRadius(6);
               layer.setStyle({ weight: 2, fillOpacity: 1 });
-              layer.closeTooltip();
             }
           }}
         >

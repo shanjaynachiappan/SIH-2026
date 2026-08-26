@@ -2,12 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Polygon, ZoomControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MonitoringNode } from '../../types';
-import { mockMinePanel } from '../../data/mockMineData';
-import { generateNodeLocations } from '../../services/nodePlacementService';
-import { initializeMockNodes, updateNodeReading } from '../../services/mockNodeService';
 import { calculateIDW, GridCell } from '../../services/deformationService';
-import { generateRiskZones } from '../../services/riskZoneService';
 import { RiskZonePolygon } from '../../types/risk';
+import { mockMinePanel } from '../../data/mockMineData';
+import { fetchLiveNodes, fetchLiveZones } from '../../services/apiService';
 import { NodeMarkers } from './NodeMarkers';
 import { DeformationLayer } from './DeformationLayer';
 import { RiskZones } from './RiskZones';
@@ -19,11 +17,11 @@ interface MineGISMapProps {
   isSimulating?: boolean;
 }
 
-const MapRecenter = ({ bounds }: { bounds: [number, number][][] }) => {
+const MapRecenter = ({ bounds }: { bounds: [number, number][] | null }) => {
   const map = useMap();
   useEffect(() => {
-    if (bounds && bounds[0] && bounds[0].length > 0) {
-      map.fitBounds(bounds[0] as any);
+    if (bounds && bounds.length === 2) {
+      map.fitBounds(bounds as any);
     }
   }, [map, bounds]);
   return null;
@@ -35,34 +33,34 @@ export const MineGISMap: React.FC<MineGISMapProps> = ({ nodeCount = 20, isSimula
   const [riskZones, setRiskZones] = useState<RiskZonePolygon[]>([]);
 
   useEffect(() => {
-    const locations = generateNodeLocations(mockMinePanel, nodeCount);
-    const initialNodes = initializeMockNodes(locations);
-    setNodes(initialNodes);
-  }, [nodeCount]);
+    let isMounted = true;
+    const fetchNodes = async () => {
+      const liveNodes = await fetchLiveNodes();
+      const liveZones = await fetchLiveZones();
+      if (isMounted) {
+        if (liveNodes.length > 0) setNodes(liveNodes);
+        if (liveZones.length > 0) setRiskZones(liveZones);
+      }
+    };
 
-  useEffect(() => {
-    if (!isSimulating || nodes.length === 0) return;
-
-    const interval = setInterval(() => {
-      setNodes(prev => prev.map(n => updateNodeReading(n)));
-    }, 5000);
-
-    return () => clearInterval(interval);
+    fetchNodes();
+    const interval = setInterval(fetchNodes, 2000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isSimulating]);
 
   useEffect(() => {
     if (nodes.length === 0) return;
-    
+
     const gridBounds: [number, number, number, number] = [86.405, 23.745, 86.430, 23.770];
-    const gridResolution = 20; 
+    const gridResolution = 20;
     const step = (gridBounds[2] - gridBounds[0]) / gridResolution;
-    
+
     const newGrid = calculateIDW(nodes, gridBounds, gridResolution, 2);
     setDeformationGrid(newGrid);
-    
-    const newZones = generateRiskZones(newGrid, step);
-    setRiskZones(newZones);
-    
+
   }, [nodes]);
 
   // Sync state to global context for AI Assistant
@@ -76,16 +74,53 @@ export const MineGISMap: React.FC<MineGISMapProps> = ({ nodeCount = 20, isSimula
   }, [nodes, deformationGrid, riskZones, isSimulating]);
 
   const panelCoords = useMemo(() => {
-    return mockMinePanel.geometry.coordinates.map(ring => 
+    return mockMinePanel.geometry.coordinates.map(ring =>
       ring.map(coord => [coord[1], coord[0]] as [number, number])
     );
   }, []);
 
+  const mapBounds = useMemo(() => {
+    if (nodes.length === 0 && riskZones.length === 0) return null;
+    const lats: number[] = [];
+    const lngs: number[] = [];
+
+    nodes.forEach(n => {
+      if (n.latitude && n.longitude) {
+        lats.push(n.latitude);
+        lngs.push(n.longitude);
+      }
+    });
+
+    riskZones.forEach(z => {
+      if (z.coordinates && z.coordinates[0]) {
+        z.coordinates[0].forEach(coord => {
+          lats.push(coord[0]);
+          lngs.push(coord[1]);
+        });
+      }
+    });
+
+    if (lats.length === 0) return null;
+
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    const padLat = (maxLat - minLat) * 0.1 || 0.01;
+    const padLng = (maxLng - minLng) * 0.1 || 0.01;
+
+    return [
+      [minLat - padLat, minLng - padLng] as [number, number],
+      [maxLat + padLat, maxLng + padLng] as [number, number]
+    ];
+  }, [nodes, riskZones]);
+
   return (
     <div className="w-full h-full relative">
-      <MapContainer 
-        center={[23.758, 86.415]} 
-        zoom={14} 
+      <MapContainer
+        center={[23.758, 86.415]}
+        zoom={14}
         zoomControl={false}
         className="w-full h-full z-0"
       >
@@ -95,16 +130,17 @@ export const MineGISMap: React.FC<MineGISMapProps> = ({ nodeCount = 20, isSimula
           maxZoom={19}
         />
         <ZoomControl position="topleft" />
-        <MapRecenter bounds={panelCoords} />
+        <MapRecenter bounds={mapBounds} />
 
-        <Polygon 
-          positions={panelCoords} 
-          pathOptions={{ 
-            color: '#ffffff', 
-            weight: 2, 
+        <Polygon
+          positions={panelCoords}
+          pathOptions={{
+            color: '#ffffff',
+            weight: 2,
             fillColor: 'transparent',
-            dashArray: '5, 5'
-          }} 
+            dashArray: '5, 5',
+            interactive: false
+          }}
         />
 
         <RiskZones zones={riskZones} />

@@ -14,11 +14,34 @@ export const NodeTooltip: React.FC<NodeTooltipProps> = ({ node }) => {
       
       <div className="space-y-1.5">
         <div className="flex justify-between items-center text-xs">
-          <span className="text-slate-500 dark:text-slate-400">Status</span>
+          <span className="text-slate-500 dark:text-slate-400">Final Risk</span>
           <span className="font-bold uppercase" style={{ color: getStatusColor(node.status) }}>
             {node.status}
           </span>
         </div>
+        
+        {node.zoneName && (
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-500 dark:text-slate-400">Zone</span>
+            <span className="font-medium text-slate-700 dark:text-slate-300 text-right max-w-[120px] truncate" title={node.zoneName}>
+              {node.zoneName}
+            </span>
+          </div>
+        )}
+
+        {node.lstmRisk && (
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-500 dark:text-slate-400">LSTM Risk</span>
+            <span className="font-medium uppercase" style={{ color: getStatusColor(node.lstmRisk) }}>{node.lstmRisk}</span>
+          </div>
+        )}
+        
+        {node.rfRisk && (
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-500 dark:text-slate-400">RF Risk</span>
+            <span className="font-medium uppercase" style={{ color: getStatusColor(node.rfRisk) }}>{node.rfRisk}</span>
+          </div>
+        )}
 
         {node.riskScore !== undefined && (
           <div className="flex justify-between items-center text-xs">
