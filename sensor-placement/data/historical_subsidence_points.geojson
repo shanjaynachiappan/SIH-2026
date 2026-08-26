@@ -1,0 +1,13 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 12}, "geometry": {"type": "Point", "coordinates": [86.4304, 23.7644]}},
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 8}, "geometry": {"type": "Point", "coordinates": [86.4324, 23.7654]}},
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 3}, "geometry": {"type": "Point", "coordinates": [86.4344, 23.7664]}},
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 15}, "geometry": {"type": "Point", "coordinates": [86.4284, 23.7634]}},
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 6}, "geometry": {"type": "Point", "coordinates": [86.4314, 23.7624]}},
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 2}, "geometry": {"type": "Point", "coordinates": [86.4264, 23.7674]}},
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 10}, "geometry": {"type": "Point", "coordinates": [86.4334, 23.7644]}},
+    {"type": "Feature", "properties": {"measured_subsidence_mm": 4}, "geometry": {"type": "Point", "coordinates": [86.4294, 23.7684]}}
+  ]
+}
