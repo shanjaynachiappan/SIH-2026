@@ -1,0 +1,16 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"name": "panel_boundary", "width_m": 150, "depth_m": 100, "extraction_thickness_m": 2.5},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [86.4290, 23.7630], [86.4318, 23.7630], [86.4318, 23.7658],
+          [86.4290, 23.7658], [86.4290, 23.7630]
+        ]]
+      }
+    }
+  ]
+}

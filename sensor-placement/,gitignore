@@ -1,0 +1,30 @@
+# --- Node / turf.js (placement/) ---
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# --- Python (backend/) ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# --- Generated pipeline outputs (regenerate via run_pipeline.sh) ---
+data/ncb_pfm_grid.geojson
+data/idw_grid.geojson
+data/buffer_zone.geojson
+data/consequence_weights.geojson
+data/composite_risk.geojson
+data/composite_risk_classified.geojson
+data/risk_zones.geojson
+data/optimal_node_positions.geojson
+
+# keep the sample input files (panel_boundary, historical_subsidence_points,
+# surface_assets) tracked -- they are NOT covered by the excludes above
+
+# --- OS / editor ---
+.DS_Store
+.vscode/
+.idea/
