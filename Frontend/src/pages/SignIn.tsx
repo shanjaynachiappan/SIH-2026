@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Hexagon, ArrowRight, ShieldCheck } from 'lucide-react';
+import { authService } from '../services/authService';
 
 export const SignIn: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@mineguard.com');
-  const [password, setPassword] = useState('MineGuard@123');
+  const [email, setEmail] = useState('controller@mineguard.com');
+  const [password, setPassword] = useState('controller123');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -18,11 +20,22 @@ export const SignIn: React.FC = () => {
       return;
     }
 
-    if (email === 'admin@mineguard.com' && password === 'MineGuard@123') {
-      localStorage.setItem('isAuthenticated', 'true');
-      navigate('/');
-    } else {
-      setError('Invalid credentials. Hint: admin@mineguard.com / MineGuard@123');
+    setIsLoading(true);
+    try {
+      const result = await authService.login(email, password);
+      if (result.success && result.user) {
+        if (result.user.role === 'MINE_CONTROLLER') {
+          navigate('/');
+        } else {
+          navigate('/access-restricted');
+        }
+      } else {
+        setError(result.error || 'Authentication failed. Please check your credentials.');
+      }
+    } catch (err) {
+      setError('An error occurred during authentication.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,8 +83,8 @@ export const SignIn: React.FC = () => {
         <div className="w-full md:w-7/12 p-8 md:p-12 lg:p-16 bg-[#F9F8F6] flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
             <div className="mb-10 text-center md:text-left">
-              <h3 className="text-3xl font-extrabold text-[#2C2922] mb-2">Welcome Back</h3>
-              <p className="text-[#736B5E] font-medium">Please enter your details to sign in.</p>
+              <h3 className="text-3xl font-extrabold text-[#2C2922] mb-2">Mine Controller Access</h3>
+              <p className="text-[#736B5E] font-medium">Sign in to monitor your assigned gateway and underground panel.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -147,11 +160,14 @@ export const SignIn: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full relative group overflow-hidden rounded-2xl p-[2px]"
+                disabled={isLoading}
+                className="w-full relative group overflow-hidden rounded-2xl p-[2px] disabled:opacity-70 cursor-pointer"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-700 rounded-2xl opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="relative flex items-center justify-center px-8 py-4 bg-[#2A3324] rounded-[14px] transition-all duration-300 group-hover:bg-opacity-0">
-                  <span className="text-sm font-bold text-[#F4F1EA] tracking-wide">SIGN IN TO SECURE PORTAL</span>
+                  <span className="text-sm font-bold text-[#F4F1EA] tracking-wide">
+                    {isLoading ? 'VERIFYING AUTHORIZATION...' : 'SIGN IN'}
+                  </span>
                   <ArrowRight className="ml-2 w-5 h-5 text-[#F4F1EA] transform group-hover:translate-x-1 transition-transform" />
                 </div>
               </button>
@@ -159,7 +175,7 @@ export const SignIn: React.FC = () => {
 
             <div className="mt-8 pt-8 border-t border-[#E5E0D8] text-center">
               <p className="text-sm text-[#736B5E] font-medium">
-                Need to request access? <button className="text-emerald-700 font-bold hover:underline">Contact Administrator</button>
+                Need gateway authorization? <button className="text-emerald-700 font-bold hover:underline">Contact Shift Supervisor</button>
               </p>
             </div>
           </div>

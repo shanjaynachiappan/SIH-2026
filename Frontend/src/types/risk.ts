@@ -11,4 +11,5 @@ export interface RiskZonePolygon {
   name?: string;
   category: RiskCategory;
   coordinates: [number, number][][];
+  maxDeformation?: number;
 }

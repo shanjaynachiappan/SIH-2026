@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Search, Sun, Bell, ChevronDown, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export const Header: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { user: currentUser, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+    logout();
+    navigate('/welcome');
   };
 
   const handleProfile = () => {
@@ -67,13 +69,17 @@ export const Header: React.FC = () => {
             onClick={() => setIsProfileOpen(!isProfileOpen)}
           >
             <img 
-              src="https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=e2e8f0" 
-              alt="User" 
+              src="https://api.dicebear.com/7.x/notionists/svg?seed=MineController&backgroundColor=e2e8f0" 
+              alt="Mine Controller" 
               className="w-9 h-9 rounded-full border border-slate-200 bg-slate-100"
             />
             <div className="hidden sm:block text-sm select-none">
-              <p className="font-semibold text-slate-900 leading-tight">Admin User</p>
-              <p className="text-xs text-slate-500 font-medium">Super Admin</p>
+              <p className="font-semibold text-slate-900 leading-tight">
+                {currentUser?.name || 'Mine Controller'}
+              </p>
+              <p className="text-xs text-slate-500 font-medium">
+                {currentUser ? `${currentUser.gateway_id} • Panel ${currentUser.panel_id}` : 'GW-01 • Panel P-01'}
+              </p>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-400 hidden sm:block" />
           </div>

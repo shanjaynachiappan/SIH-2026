@@ -22,6 +22,9 @@ export interface MonitoringNode {
   rfProbabilities?: Record<string, number>;
   zoneId?: string;
   zoneName?: string;
+  gatewayId?: string;
+  meshId?: string;
+  panelId?: string;
 }
 
 export interface Alert {
@@ -32,6 +35,7 @@ export interface Alert {
   severity: 'low' | 'medium' | 'high' | 'critical';
   type: 'displacement' | 'tilt' | 'vibration' | 'system';
   nodeId?: string;
+  gatewayId?: string;
 }
 
 export interface DeformationDataPoint {
@@ -59,3 +63,16 @@ export interface DashboardSummary {
   overallRisk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   riskScore: number;
 }
+
+export type UserRole = 'MINE_CONTROLLER' | 'PLANNER' | 'REGULATOR' | 'ADMIN' | 'CENTRAL_ADMIN' | 'GEOTECH_ENGINEER' | 'VIEWER';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  name?: string;
+  gateway_id: string;
+  panel_id: string;
+  mesh_id?: string;
+}
+

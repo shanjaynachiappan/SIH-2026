@@ -2,35 +2,29 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Map as MapIcon, 
   Radio, 
-  Activity, 
-  ShieldAlert, 
   Bell, 
-  FileText, 
   BarChart2, 
-  Wrench, 
   Settings,
-  Hexagon,
-  Sparkles
+  Hexagon
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Live Map', path: '/map', icon: MapIcon },
-  { name: 'Nodes', path: '/nodes', icon: Radio },
-  { name: 'Deformation', path: '/deformation', icon: Activity },
-  { name: 'Risk Zones', path: '/risk-zones', icon: ShieldAlert },
   { name: 'Alerts', path: '/alerts', icon: Bell, badge: 2 },
-  { name: 'Reports', path: '/reports', icon: FileText },
-  { name: 'Analytics', path: '/analytics', icon: BarChart2 },
-  { name: 'AI Assistant', path: '/ai-interaction', icon: Sparkles },
-  { name: 'Maintenance', path: '/maintenance', icon: Wrench },
+  { name: 'Nodes', path: '/nodes', icon: Radio },
+  { name: 'Trend', path: '/trend', icon: BarChart2 },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
 export const Sidebar: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const gatewayBadge = currentUser 
+    ? `${currentUser.gateway_id} • ${currentUser.mesh_id || 'MESH-01'} • ${currentUser.panel_id}` 
+    : 'GW-01 • MESH-01 • P-01';
+
   return (
     <aside className="w-64 bg-white border-r border-slate-200 h-screen flex flex-col fixed left-0 top-0 overflow-y-auto">
       {/* Logo */}
@@ -99,8 +93,11 @@ export const Sidebar: React.FC = () => {
       <div className="px-6 pb-4">
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">System Health</h4>
         <ul className="space-y-2 text-xs text-slate-600 font-medium">
+          <li className="flex justify-between items-center text-[10px] text-slate-400 mb-2 border-b border-slate-100 pb-2">
+            <span>{gatewayBadge}</span>
+          </li>
           <li className="flex justify-between items-center">
-            <span>Network</span>
+            <span>Gateway</span>
             <span className="flex items-center text-emerald-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Online</span>
           </li>
           <li className="flex justify-between items-center">
@@ -112,8 +109,8 @@ export const Sidebar: React.FC = () => {
             <span className="flex items-center text-emerald-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>99.8%</span>
           </li>
           <li className="flex justify-between items-center">
-            <span>Gateway</span>
-            <span className="flex items-center text-emerald-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Online</span>
+            <span>Mesh Health</span>
+            <span className="flex items-center text-emerald-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Good</span>
           </li>
         </ul>
       </div>
