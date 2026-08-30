@@ -1,0 +1,25 @@
+Stage 3a Simulated MEMS Vibration Hazard Dataset
+
+Purpose:
+Synthetic training data for MineGuard Stage 3a, directly compatible with the
+Full and Lite node vibration fields.
+
+Model input columns:
+- rms_acceleration_mps2
+- dominant_frequency_hz
+- peak_acceleration_mps2
+
+Target:
+- vibration_hazard_label
+  0 = non-hazardous / normal vibration
+  1 = hazardous vibration condition
+
+Dataset size: 6000
+Class distribution:
+- Label 0: 3600
+- Label 1: 2400
+
+Important:
+This is simulated MEMS-compatible data created for prototype/model development.
+It is not a real-world ground-truth vibration dataset and should not be presented
+as measured field data.
