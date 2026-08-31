@@ -41,15 +41,15 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
           <p className="text-xs text-slate-400 font-medium mt-1">{subtitle}</p>
         </div>
       </div>
-      
+
       <div className="w-24 h-12">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={sparklineData}>
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke={sparklineColor} 
-              strokeWidth={2} 
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={sparklineColor}
+              strokeWidth={2}
               dot={false}
               isAnimationActive={false}
             />

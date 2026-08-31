@@ -8,7 +8,7 @@ export async function fetchLiveNodes(): Promise<MonitoringNode[]> {
     const res = await fetch(`${API_BASE}/ml/nodes`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
-    
+
     // We also need to fetch detailed risk for each to get probabilities if needed, 
     // but the backend /api/nodes can be updated to return the full node details.
     // Let's assume the backend /api/nodes returns full node state.
@@ -19,10 +19,10 @@ export async function fetchLiveNodes(): Promise<MonitoringNode[]> {
         const detailRes = await fetch(`${API_BASE}/ml/nodes/${n.node_id}`, { cache: 'no-store' });
         if (!detailRes.ok) return null;
         const detail = await detailRes.json();
-        
+
         const statusStr = detail.final_risk ? detail.final_risk.toLowerCase() : 'normal';
         const latestData = detail.latest_sensor_data || {};
-        
+
         return {
           id: n.node_id,
           name: n.node_id,
@@ -47,7 +47,7 @@ export async function fetchLiveNodes(): Promise<MonitoringNode[]> {
         } as MonitoringNode;
       })
     );
-    
+
     return fullNodes.filter(n => n !== null) as MonitoringNode[];
   } catch (error) {
     console.error("Error fetching live nodes:", error);
@@ -60,9 +60,9 @@ export async function fetchLiveZones(): Promise<RiskZonePolygon[]> {
     const res = await fetch(`${API_BASE}/ml/risk-zones`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
-    
+
     return data.map((z: any) => {
-      const halfSize = 0.003; 
+      const halfSize = 0.003;
       const coords: [number, number][][] = [[
         [z.latitude - halfSize, z.longitude - halfSize],
         [z.latitude + halfSize, z.longitude - halfSize],
@@ -70,7 +70,7 @@ export async function fetchLiveZones(): Promise<RiskZonePolygon[]> {
         [z.latitude - halfSize, z.longitude + halfSize],
         [z.latitude - halfSize, z.longitude - halfSize]
       ]];
-      
+
       return {
         id: z.zone_id,
         name: z.zone_name,
@@ -92,6 +92,27 @@ export async function fetchLiveAlerts(): Promise<any[]> {
     return await res.json();
   } catch (error) {
     console.error("Error fetching live alerts:", error);
+    return [];
+  }
+}
+
+export async function fetchTelemetryHistory(nodeId?: string, limit?: number): Promise<any[]> {
+  try {
+    let url = `${API_BASE}/telemetry/history`;
+    const params = new URLSearchParams();
+    if (nodeId) params.append('node_id', nodeId);
+    if (limit) params.append('limit', limit.toString());
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.data || [];
+  } catch (error) {
+    console.error("Error fetching telemetry history:", error);
     return [];
   }
 }

@@ -1,233 +1,312 @@
-# MineGuard.ai — Real-Time Strata Surveillance & Collapse Warning System
+# MineGuard AI/ML System
 
-MineGuard.ai is a state-of-the-art, multi-layered Artificial Intelligence and Geographic Information System (GIS) solution designed for underground mines. The system monitors strata movement, convergence, vibration, and crack extension to predict potential roof collapses and land subsidence hours before they occur.
+## 1. Project Overview
+**What the project does:** MineGuard is a comprehensive, real-time safety and structural integrity monitoring system for deep underground mines. It leverages heterogeneous sensor arrays, edge gateways, and advanced Machine Learning models to predict hazards before they occur.
+**Overall objective:** To prevent catastrophic mine collapses, subsidence events, and fatal accidents by transforming raw sensor telemetry into actionable, predictive alerts for mine administrators.
 
 ---
 
-## 🏗️ Architecture Overview
+## 2. Complete System Architecture
+The MineGuard system is built on a robust, multi-tier architecture spanning from deep underground to central command centers:
+- **ESP32 Sensor Nodes**: Deployed across mine walls and pillars, collecting raw physical data (tilt, vibration, displacement).
+- **Mesh Network**: Underground nodes communicate with each other via a resilient mesh network, overcoming the lack of standard connectivity.
+- **ESP32 Gateway**: Acts as the master node aggregating all mesh traffic.
+- **Wi-Fi Communication**: The Gateway bridges the mesh network to the local intranet via Wi-Fi.
+- **Raspberry Pi (Edge Server)**: Positioned safely at the surface/base station, receiving all gateway data.
+- **Python Backend & ML Pipeline**: Running on the Raspberry Pi, it processes raw telemetry through 7 rigorous ML stages in milliseconds.
+- **Local Dashboard**: A React application for the local mine operator, showing instantaneous real-time metrics for their specific mine.
+- **Central Dashboard**: A React application for regional administrators, aggregating data across multiple mines and panels.
 
-The system is structured as an end-to-end data pipeline from raw physical sensors to the centralized dashboard:
+---
 
-```
-[Physical Sensors / IoT Nodes]
-           │
-           ▼  (POST /api/telemetry JSON payload)
-┌──────────────────────────────────────────────┐
-│                  server.py                   │  <─── (Flask API & Cache Manager)
-└──────┬───────────────────────────────────────┘
-       │
-       ▼  (In-Memory Queue)
-┌──────────────────────────────────────────────┐
-│              live_inference.py               │  <─── (Live AI Scoring Pipeline)
-└──────┬───────────────────────────────────────┘
-       │
-       ▼
- ┌───────────── Ingestion (Stage 1)
- ┌───────────── Feature Engineering (Stage 2)
- ├───────────── Random Forest Vibration Classifier (Stage 3a)
- ├───────────── Isolation Forest Anomaly Detection (Stage 3b)
- ├───────────── Displacement Progression Rate Analysis (Stage 4)
- ├───────────── LSTM 3-Step Displacment Forecasting (Stage 5)
- ├───────────── Multi-Sensor Spatial Risk Fusion (Stage 6)
- └───────────── Unified Dashboard Payloads (Stage 7)
-       │
-       ▼
-┌──────────────────────────────────────────────┐
-│             In-Memory Store                  │
-└──────┬───────────────────────────────────────┘
-       │
-       ├───────────────────────────────────────┐
-       ▼ (GET /api/ml/nodes)                  ▼ (GET /api/ml/alerts)
-┌──────────────────────────────┐       ┌──────────────────────────────┐
-│      Local Dashboard         │       │      Central Dashboard       │
-│  (Frontend/ - Local Gateway) │       │ (frontend-2/ - Mine Command) │
-└──────────────────────────────┘       └──────────────────────────────┘
+## 3. Complete End-to-End Data Flow
+```text
+Sensor (Physical Measurement) 
+  → ESP32 Node 
+    → Mesh Network 
+      → ESP32 Gateway 
+        → Wi-Fi (HTTP POST) 
+          → Raspberry Pi (Port 5000) 
+            → Backend API (/api/telemetry) 
+              → 7-Stage ML Pipeline 
+                → Risk Prediction & Models 
+                  → Dashboards (REST/WebSocket GET)
 ```
 
 ---
 
-## 🧠 The 7-Stage ML Pipeline
+## 4. Hardware-to-Backend Integration
+The **ESP32 Gateway** acts as an HTTP Client. Once it aggregates data from the mesh nodes, it crafts a JSON payload and sends an **HTTP POST request** over Wi-Fi directly to the Raspberry Pi. 
+- **Raspberry Pi IP Address**: The ESP32 Gateway must be hardcoded or dynamically configured with the exact IPv4 address of the Raspberry Pi on the local Wi-Fi network (e.g., `192.168.1.100`).
+- **Backend Port**: `5000` (Default Flask port).
 
-The pipeline is split into modular execution stages to isolate tasks, optimize computing, and allow clean scaling:
-
-1. **`stage1_ingestion.py`**
-   Ingests raw JSON/CSV sensor inputs (representing accelerometers, tilt sensors, crack gauges, and GNSS receivers) into normalized Pandas DataFrames.
-2. **`stage2_feature_engineering.py`**
-   Calculates time-series derivatives such as velocity, displacement rates, 3D tilt magnitudes, cumulative displacement, and changes from baselines.
-3. **`stage3a_vibration.py`**
-   Uses a pre-trained **Random Forest Classifier** to analyze high-frequency vibration signals (RMS, peak acceleration, dominant frequency) to isolate blasting events from structurally hazardous vibrations.
-4. **`stage3b_anomaly.py`**
-   Utilizes an **Isolation Forest** unsupervised algorithm to tag spatial anomalies and abnormal sensor deviations.
-5. **`stage4_progression.py`**
-   Maps regression lines across historical windows to identify whether roof convergence rate is accelerating (representing an impending roof fall).
-6. **`stage5_forecasting.py`**
-   Runs a deep learning **LSTM (Long Short-Term Memory)** model to project displacement coordinates 3 steps (hours) into the future.
-7. **`stage6_zone_fusion.py`**
-   Blends features from all sensors in a physical panel to calculate a unified **`composite_risk_score`** (between 0.0 and 1.0) and triggers warning thresholds.
-8. **`stage7_output_generation.py`**
-   Formats the final dataframes into standard JSON payloads optimized for Leaflet GIS rendering.
+*(Note: `localhost` or `127.0.0.1` cannot be used on the ESP32 code because that refers to the ESP32 itself. It must be the Pi's actual network IP).*
 
 ---
 
-## ⚡ Server & API Integration (`server.py`)
+## 5. Telemetry API Contract
+**Endpoint:** `POST /api/telemetry`
 
-`server.py` hosts a lightweight, multi-threaded Flask server handling integration between frontends and the ML backend:
-
-### Key Endpoints
-
-* **`POST /api/telemetry`**
-  Receives live sensor telemetry payloads from IoT nodes, parses them, runs the full `live_inference.py` pipeline, updates the cache, and returns the real-time classification.
-* **`GET /api/ml/nodes`**
-  Returns a list of all active sensor nodes, their current coordinates, and their immediate risk levels (`NORMAL`, `WARNING`, `CRITICAL`).
-* **`GET /api/ml/nodes/<node_id>`**
-  Returns high-fidelity details of a single node, including its predicted displacement forecasting curve, battery levels, raw telemetry details, and class probabilities.
-* **`GET /api/ml/alerts`**
-  Returns a chronological list of warning or critical anomalies that have occurred in the mine.
-* **`GET /api/ml/risk-zones`**
-  Returns spatial polygon geometries representing stress warning areas across mine panels.
-
----
-
-## 📊 Dashboards & GIS Integration
-
-The project includes two modern, responsive React + TypeScript + Vite dashboards:
-
-### 1. Local Gateway Dashboard (`Frontend/`)
-* **Purpose:** Running locally at a gateway station inside a specific mine tunnel.
-* **Features:** Low-latency sensor mesh rendering, live telemetry trackers, and immediate warning buzzers.
-
-### 2. Central Command Dashboard (`frontend-2/`)
-* **Purpose:** Running in a remote headquarters, managing multiple mines and hundreds of gateway grids.
-* **Features:** Comprehensive statistics across multiple mines, multi-tier node status listings, and cross-mine warning systems.
-
-### 🗺️ GIS Mapping & IDW Heatmap
-* Both dashboards utilize **Leaflet** for interactive mapping.
-* They implement an **IDW (Inverse Distance Weighting)** spatial interpolation algorithm (`deformationService.ts`). 
-* The IDW engine takes the real-time displacement values (in mm) from the active sensors and dynamically overlays a red/orange **Deformation Heatmap** indicating exactly where the ceiling is sagging the most, allowing commanders to deploy safety supports before structural failure.
+**Required JSON Payload:**
+```json
+{
+  "node_id": "N_FULL_01",
+  "timestamp": "2026-08-31T12:00:00",
+  "tilt_x_deg": 0.034,
+  "tilt_y_deg": -0.018,
+  "acceleration_mps2": 0.42,
+  "peak_acceleration_mps2": 1.85,
+  "rms_acceleration_mps2": 0.033,
+  "dominant_frequency_hz": 18.05,
+  "displacement_mm": -12.5,
+  "crack_opening_mm": 0.8
+}
+```
+*Note: The node type (Full, Lite, etc.) is automatically inferred by the backend based on the prefix of the `node_id`.*
 
 ---
 
-## 🚀 Setup & Execution Guide
+## 6. Raspberry Pi Backend Setup
+To deploy this system onto the Raspberry Pi edge server:
 
-### Prerequisites
-* **Python 3.8+**
-* **Node.js v18+ & npm**
+1. **Clone the repository:**
+   `git clone <repo-url> && cd SIH-2026/ML_Part`
+2. **Required Python version:** Python 3.9+
+3. **Virtual environment:**
+   `python3 -m venv venv && source venv/bin/activate`
+4. **Installing dependencies:**
+   `pip install -r requirements.txt`
+5. **Model files required (must be present in the directory):**
+   - `vibration_rf_model.joblib`
+   - `subsidence_lstm.pth`
+   - `subsidence_scaler.joblib`
+6. **Starting the backend:**
+   `python3 server.py` (Ensure it binds to `0.0.0.0`)
 
-### 1. Running the ML Backend
-First, set up your Python virtual environment and run the Flask server:
+---
 
+## 7. ML Pipeline Flow & 8. Machine Learning Models Used
+
+The data processing logic is broken into a highly deterministic 7-stage sequence. This section details exactly what happens in each stage, which ML models are involved, and how the output of one stage feeds the next.
+
+### Stage 1 — Data Ingestion (`stage1_ingestion.py`)
+- **Process**: The system accepts the raw JSON payload. It first validates the existence of mandatory fields (`node_id`, `timestamp`). It dynamically assigns the Node Tier (e.g., `N_FULL_01` -> `Full`) based on the ID prefix. 
+- **Models Used**: None. (Pure data validation).
+- **Hand-off**: The cleaned, typed data is passed to Stage 2 as a structured Pandas DataFrame. Missing values are flagged.
+
+### Stage 2 — Feature Engineering (`stage2_feature_engineering.py`)
+- **Process**: Raw sensor readings (e.g., current tilt, current displacement) are insufficient for predictive AI. This stage pulls the previous reading from the in-memory buffer (`NODE_HISTORY`) and computes **velocities**. It calculates `time_delta` (hours since last reading) to generate `tilt_rate_deg_per_time`, `displacement_rate_mm_per_time`, and `crack_opening_rate`.
+- **Models Used**: None. (Mathematical transformations).
+- **Hand-off**: The mathematically enriched dataset, now containing both absolute values and rates of change, is passed to Stage 3.
+
+### Stage 3 — Vibration & Anomaly Analysis (`stage3_coordinator.py`)
+This stage forks the data into two parallel ML evaluations (3a and 3b), then merges the results.
+- **Process 3a (Vibration Hazard)**: Analyzes the `rms_acceleration_mps2` and `dominant_frequency_hz` against structural hazard boundaries.
+- **Model Used**: **Random Forest Classifier (`vibration_rf_model.joblib`)**. A scikit-learn model trained on structural failure datasets. It categorizes the vibration into a discrete `rf_risk` class (Normal, Warning, Critical) and outputs a `classification_confidence` score.
+- **Process 3b (Anomaly Detection)**: Looks for multivariate outliers across tilt, displacement, and crack rates simultaneously (things that don't fit normal operational bounds).
+- **Model Used**: **Isolation Forest (Unsupervised ML)**. It generates an `anomaly_score` (-1.0 to 1.0) and an `anomaly_flag` (1 for anomaly, 0 for normal).
+- **Hand-off**: The dataset, now appended with Random Forest risk classes and Isolation Forest anomaly flags, is passed to Stage 4.
+
+### Stage 4 — Progression & Severity Analysis (`stage4_progression.py`)
+- **Process**: The system looks at the recent historical window (buffer) of the node to determine if the structural hazard is actively worsening over time. It performs a **Linear Regression** over the engineered velocity features.
+- **Models Used**: Ordinary Least Squares (OLS) Regression.
+- **Output Generated**: A strictly mathematical `severity_slope`. A negative slope on displacement implies active, accelerating subsidence. 
+- **Hand-off**: The `severity_slope` acts as a crucial context multiplier for Stage 6, but first, the data is sent to Stage 5.
+
+### Stage 5 — Forecasting (`stage5_forecasting.py`)
+- **Process**: The system attempts to see into the future. It extracts a strictly ordered time-series sequence (the last 12 chronological readings) of the node.
+- **Model Used**: **PyTorch LSTM Neural Network (`subsidence_lstm.pth`)**. This deep learning model is coupled with a **StandardScaler (`subsidence_scaler.joblib`)** to normalize the 12-step input. The LSTM utilizes its memory cells to predict non-linear patterns in structural deformation.
+- **Output Generated**: The model outputs exactly 3 continuous values: `forecast_displacement_step_1_mm`, `step_2`, and `step_3`.
+- **Hand-off**: The predicted future displacements are passed to Stage 6 for risk fusion.
+
+### Stage 6 — Zone Risk Fusion (`stage6_zone_fusion.py`)
+- **Process**: This is the culmination stage. It calculates two distinct scores:
+  1. **Current Risk**: An average of the normalized instantaneous sensor values (tilt, vibration, crack) and the Stage 3 Random Forest risk class.
+  2. **Future Risk**: A calculation heavily weighted by the Stage 5 LSTM forecast trajectory and the Stage 4 `severity_slope`.
+- **Model Used**: Weighted Mathematical Fusion.
+- **Output Generated**: The `composite_risk_score` (0.0 to 1.0). This is the definitive safety metric of the node.
+- **Hand-off**: The unified risk score, along with all ML intermediate outputs, is sent to Stage 7.
+
+### Stage 7 — Final Output Generation (`stage7_output_generation.py`)
+- **Process**: Translates the dense, multi-layered Pandas ML arrays into clean, structured JSON schemas. It maps the numerical `severity_slope` into a UI-friendly `trend_direction` (INCREASING, DECREASING, STABLE).
+- **Hand-off**: The final JSON object is returned to `server.py`, which immediately replies to the ESP32 Gateway (HTTP 201) and caches the object for Dashboard GET requests.
+
+---
+
+## 9. Node Types and Sensor Configuration
+1. **Full Node (`N_FULL_*`)**
+   - **Sensors:** Tilt, Vibration, Displacement, Crack.
+   - **ML Processing:** Full suite (RF Vibration, IF Anomaly, LSTM Forecasting, Progression).
+2. **Lite Node (`N_LITE_*`)**
+   - **Sensors:** Tilt, Vibration.
+   - **ML Processing:** RF Vibration, IF Anomaly, Progression (Forecast skipped).
+3. **Crack Node (`N_CRACK_*`)**
+   - **Sensors:** Crack Width.
+   - **ML Processing:** Crack thresholding and progression rates.
+4. **GNSS Reference Node (`N_GNSS_*`)**
+   - **Sensors:** GPS Latitude, Longitude, Elevation.
+   - **ML Processing:** Differential absolute positioning analysis.
+
+---
+
+## 10. Backend API Endpoints
+- **Telemetry Ingestion:** `POST /api/telemetry` (Used by ESP32 Gateway)
+- **Node List:** `GET /api/ml/nodes` (Returns all nodes with current risk statuses)
+- **Node Details:** `GET /api/ml/nodes/{node_id}` (Returns full historical ML predictions & raw data for a specific node)
+- **Alerts:** `GET /api/ml/alerts` (Returns active warnings/critical alerts based on composite risk)
+- **Risk Zones:** `GET /api/ml/risk-zones` (Returns aggregated risk geometries for the GIS map)
+- **Telemetry History:** `GET /api/telemetry/history` (Returns historical arrays for time-series charts)
+
+---
+
+## 11. ML Output Format
+When the dashboards query the backend, the ML pipeline provides highly enriched fields:
+- `hazard_class`: (0 = Normal, 1 = Warning, 2 = Critical) Discrete RF output.
+- `composite_risk_score`: (0.0 to 1.0) The master safety score fusing current and future risks.
+- `classification_confidence`: (0.0 to 1.0) Model certainty.
+- `anomaly_score`: Isolation Forest outlier score.
+- `trend_direction`: INCREASING, DECREASING, STABLE (derived from severity slope).
+- `forecast_displacement_step_X_mm`: Expected displacement in the future (LSTM output).
+- `latitude` / `longitude`: Spatial coordinates for the GIS map.
+
+---
+
+## 12. Risk Classification
+The `composite_risk_score` dictates system behavior:
+- **NORMAL (< 0.5)**: Safe conditions. Dashboard stays green.
+- **WARNING (0.5 to 0.74)**: Emerging hazards detected. Dashboard turns orange. Operators notified.
+- **CRITICAL (>= 0.75)**: Imminent collapse or severe structural failure predicted. Dashboard turns red, alarms triggered, GIS maps highlight zones in red.
+
+---
+
+## 13. Dashboard Integration
+### Local Dashboard
+- **Folder:** `Frontend/`
+- **Backend connection:** `http://<pi-ip>:5000/api`
+- **Replaced Mock Data:** Live Maps, active alerts, total nodes, dynamic risk score distributions, and time-series charts are directly wired to the ML API.
+
+### Central Dashboard
+- **Folder:** `frontend-2/`
+- **Backend connection:** `http://<pi-ip>:5000/api`
+- **Replaced Mock Data:** Same as local, but capable of aggregating multiple gateways.
+
+---
+
+## 14. Mock Data vs Real Data Integration
+**Currently Replaced with REAL Backend/ML Data:**
+- Node definitions, counts, and statuses.
+- Live sensor values mapped to cards and charts.
+- Overall Risk scores and Alert lists.
+- Dynamic trend histories on the deformation chart.
+
+**Still Mock/Static:**
+- GIS mine boundaries and polygons (hardcoded coordinates).
+- Authentication and Login flows.
+- PDF Reports.
+- Administrative Gateway settings.
+
+---
+
+## 15. How Hardware Data Reaches the Dashboard
+1. **ESP32 Gateway** fires an `HTTP POST` request containing sensor JSON.
+2. The **Raspberry Pi** receives it at `/api/telemetry`.
+3. `server.py` immediately forwards the JSON to `live_inference.py`.
+4. The **ML Pipeline** processes it, appending it to the historical buffer and calculating the latest `composite_risk_score`.
+5. The Prediction is **Stored** in the Pi's memory.
+6. The Dashboards periodically fire **GET APIs** (`/api/ml/nodes`).
+7. The **Local + Central Dashboard** updates its UI to reflect the new state.
+
+---
+
+## 16. Running the Complete System
+Open three separate terminals:
+
+**Terminal 1 — Raspberry Pi Backend**
 ```bash
-# Go to workspace directory
-cd ML_Part
-
-# Create and activate virtual environment
-python3 -m venv venv
+cd SIH-2026/ML_Part
 source venv/bin/activate
-
-# Install requirements
-pip install -r requirements.txt
-
-# Start the server (will bind to port 5000)
 python3 server.py
 ```
 
-### 2. Launching the Dashboards
-Open separate terminals for the dashboards:
-
-#### Local Dashboard:
+**Terminal 2 — Local Dashboard**
 ```bash
-cd ML_Part/Frontend
+cd SIH-2026/ML_Part/Frontend
 npm install
 npm run dev
 ```
 
-#### Central Dashboard:
+**Terminal 3 — Central Dashboard**
 ```bash
-cd ML_Part/frontend-2
+cd SIH-2026/ML_Part/frontend-2
 npm install
 npm run dev
 ```
 
 ---
 
-## 🧪 Testing Telemetry Integration (Live curl payloads)
+## 17. Testing the Integration
+1. **Test backend health:** Visit `http://localhost:5000/` in a browser.
+2. **Send sample telemetry:** Use the `curl` command (from section 5).
+3. **Check ML result:** The `curl` command will print the immediate ML response.
+4. **Check node API:** Visit `http://localhost:5000/api/ml/nodes`.
+5. **Verify dashboard update:** The Local Dashboard (Port 5173/5174) will automatically spike its charts and alert lists within 2 seconds.
 
-Use the following cURL payloads to inject live data and verify the dashboards update:
+---
 
-#### A. Stable Node (NORMAL state - Green marker, no alert)
-```bash
-curl -X POST http://localhost:5000/api/telemetry \
--H "Content-Type: application/json" \
--d '\''{
-  "node_id": "N_FULL_110",
-  "timestamp": "2026-08-30T13:00:00Z",
-  "latitude": 23.765,
-  "longitude": 86.425,
-  "battery_level": 99,
-  "tilt_x_deg": 0.0,
-  "tilt_y_deg": 0.0,
-  "tilt_magnitude_deg": 0.0,
-  "acceleration_mps2": 0.01,
-  "peak_acceleration_mps2": 0.02,
-  "rms_acceleration_mps2": 0.01,
-  "dominant_frequency_hz": 1.0,
-  "vibration_duration_s": 0.0,
-  "displacement_mm": 0.0,
-  "cumulative_displacement_mm": 0.0,
-  "crack_detected": 0,
-  "crack_opening_mm": 0.0,
-  "elevation_m": 250.0
-}'\''
+## 18. Network Configuration
+**(Crucial for Hardware Teams)**
+- **Raspberry Pi IP address:** Must be static or known (e.g., `192.168.1.100`).
+- **ESP3, Gateway endpoint:** `http://192.168.1.100:5000/api/telemetry`.
+- **Laptop/dashboard connection:** Laptops must be on the same Wi-Fi network and access `http://192.168.1.100:5173`.
+- **Why localhost cannot be used:** `localhost` on the ESP32 points to the ESP32 itself. It does not magically resolve to the Raspberry Pi. Hardcode the IPv4 address.
+
+---
+
+## 19. Project Folder Structure
+```text
+SIH-2026/ML_Part/
+│
+├── server.py                        # Main Flask API Server
+├── live_inference.py                # Wrapper connecting Flask to ML Pipeline
+│
+├── stage1_ingestion.py              # ML Stage 1: Validation
+├── stage2_feature_engineering.py    # ML Stage 2: Velocity maths
+├── stage3_coordinator.py            # ML Stage 3: RF and IF models
+├── stage4_coordinator.py            # ML Stage 4: Progression slopes
+├── stage5_forecasting.py            # ML Stage 5: LSTM execution
+├── stage6_zone_fusion.py            # ML Stage 6: Risk score calculation
+├── stage7_output_generation.py      # ML Stage 7: JSON formatting
+│
+├── vibration_rf_model.joblib        # Pre-trained Random Forest model
+├── subsidence_lstm.pth              # Pre-trained PyTorch LSTM model
+├── subsidence_scaler.joblib         # LSTM Data Scaler
+│
+├── Frontend/                        # Local Mine Operator Dashboard (React/Vite)
+│
+├── frontend-2/                      # Central Admin Dashboard (React/Vite)
+│
+└── backend/                         # Original Mock/Simulator Code
+    └── simulator.py                 
 ```
 
-#### B. Heavy Vibration Node (WARNING state - Orange marker, warning alert)
-```bash
-curl -X POST http://localhost:5000/api/telemetry \
--H "Content-Type: application/json" \
--d '\''{
-  "node_id": "N_FULL_111",
-  "timestamp": "2026-08-30T13:05:00Z",
-  "latitude": 23.750,
-  "longitude": 86.435,
-  "battery_level": 85,
-  "tilt_x_deg": 0.5,
-  "tilt_y_deg": 0.3,
-  "tilt_magnitude_deg": 0.58,
-  "acceleration_mps2": 8.5,
-  "peak_acceleration_mps2": 15.2,
-  "rms_acceleration_mps2": 6.1,
-  "dominant_frequency_hz": 85.0,
-  "vibration_duration_s": 3.2,
-  "displacement_mm": 2.5,
-  "cumulative_displacement_mm": 2.5,
-  "crack_detected": 0,
-  "crack_opening_mm": 0.0,
-  "elevation_m": 248.0
-}'\''
-```
+---
 
-#### C. Roof Failure Node (CRITICAL state - Red marker, red alert, red deformation heatmap)
-```bash
-curl -X POST http://localhost:5000/api/telemetry \
--H "Content-Type: application/json" \
--d '\''{
-  "node_id": "N_FULL_114",
-  "timestamp": "2026-08-30T13:20:00Z",
-  "latitude": 23.758,
-  "longitude": 86.400,
-  "battery_level": 12,
-  "tilt_x_deg": 22.5,
-  "tilt_y_deg": -18.2,
-  "tilt_magnitude_deg": 28.9,
-  "acceleration_mps2": 28.5,
-  "peak_acceleration_mps2": 45.0,
-  "rms_acceleration_mps2": 22.5,
-  "dominant_frequency_hz": 110.0,
-  "vibration_duration_s": 15.5,
-  "displacement_mm": 210.0,
-  "cumulative_displacement_mm": 210.0,
-  "crack_detected": 1,
-  "crack_opening_mm": 25.5,
-  "elevation_m": 242.0
-}'\''
-```
+## 20. Current Integration Status
+- ✅ **ML pipeline completed**: All 7 stages fully functional with live memory buffers.
+- ✅ **Backend integration completed**: `server.py` is actively routing and serving APIs.
+- ✅ **Local Dashboard connected**: Replacing mock data with live REST endpoints.
+- ✅ **Central Dashboard connected**: Fetching data identically.
+- ⏳ **ESP32 Gateway → Raspberry Pi live connection**: Pending hardware team flashing and field test.
+- ⏳ **Deployment on Raspberry Pi**: Final deployment to Linux hardware pending.
+- ⏳ **Remaining mock/static infrastructure**: Auth, PDFs, and static GIS maps to be migrated.
+
+---
+
+## 21. Troubleshooting
+- **Port already in use**: If `5000` is taken, run `kill -9 $(lsof -t -i:5000)` or change the port in `server.py`.
+- **Backend unreachable**: Ensure the Pi's firewall allows port `5000` (`sudo ufw allow 5000`).
+- **Raspberry Pi IP changed**: Check `ifconfig` or `ip a` on the Pi and update the ESP32 C++ code.
+- **ESP32 cannot reach Pi**: Ensure they are on the exact same Wi-Fi SSID and band (2.4GHz vs 5GHz matters for ESP32).
+- **Python dependency issues**: Ensure you are in the `venv` and ran `pip install -r requirements.txt`.
+- **ML model file not found**: Make sure you run `server.py` from inside the `ML_Part` directory so relative paths resolve correctly.
+- **Dashboard showing fallback/mock data**: The backend is likely dead. Check the terminal running `server.py` for Python crashes.

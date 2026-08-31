@@ -36,12 +36,12 @@ export const RecentAlerts: React.FC<RecentAlertsProps> = ({ alerts }) => {
         <h2 className="text-base font-bold text-slate-800">Recent Alerts</h2>
         <button onClick={() => navigate('/alerts')} className="text-sm text-blue-600 font-medium hover:text-blue-700">View All</button>
       </div>
-      
+
       <div className="flex-1 p-3 flex flex-col space-y-2 overflow-y-auto">
         {alerts.slice(0, 4).map((alert) => {
           const Icon = getAlertIcon(alert.type);
           const severityStyle = getSeverityStyles(alert.severity);
-          
+
           return (
             <div key={alert.id} className="flex items-start p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
               <div className={clsx("p-2.5 rounded-xl border flex-shrink-0 mt-0.5", severityStyle)}>
@@ -55,8 +55,8 @@ export const RecentAlerts: React.FC<RecentAlertsProps> = ({ alerts }) => {
               <div className={clsx(
                 "px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ml-2",
                 alert.severity === 'high' ? 'bg-red-50 border-red-100 text-red-600' :
-                alert.severity === 'medium' ? 'bg-orange-50 border-orange-100 text-orange-500' :
-                'bg-emerald-50 border-emerald-100 text-emerald-600'
+                  alert.severity === 'medium' ? 'bg-orange-50 border-orange-100 text-orange-500' :
+                    'bg-emerald-50 border-emerald-100 text-emerald-600'
               )}>
                 {alert.severity}
               </div>

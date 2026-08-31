@@ -20,42 +20,42 @@ export const DeformationChart: React.FC<DeformationChartProps> = ({ data }) => {
           <span className="text-sm font-bold text-slate-800">{latestValue} mm</span>
         </div>
       </div>
-      
+
       <div className="flex-1 w-full min-h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorDeformation" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis 
-              dataKey="time" 
-              axisLine={false} 
-              tickLine={false} 
+            <XAxis
+              dataKey="time"
+              axisLine={false}
+              tickLine={false}
               tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
               dy={10}
             />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
+            <YAxis
+              axisLine={false}
+              tickLine={false}
               tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
               dx={-10}
             />
-            <Tooltip 
+            <Tooltip
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               itemStyle={{ color: '#0f172a', fontWeight: 'bold' }}
               labelStyle={{ color: '#64748b', marginBottom: '4px' }}
             />
-            <Area 
-              type="monotone" 
-              dataKey="deformation" 
-              stroke="#2563eb" 
+            <Area
+              type="monotone"
+              dataKey="deformation"
+              stroke="#2563eb"
               strokeWidth={3}
-              fillOpacity={1} 
-              fill="url(#colorDeformation)" 
+              fillOpacity={1}
+              fill="url(#colorDeformation)"
             />
           </AreaChart>
         </ResponsiveContainer>

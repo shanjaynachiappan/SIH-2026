@@ -55,6 +55,12 @@ def api_telemetry():
         return jsonify({"error": "Missing node_id in request payload."}), 400
         
     try:
+        # Print incoming data to the terminal
+        print("\n" + "="*50)
+        print(f"📡 [HARDWARE INCOMING] Node: {payload.get('node_id')}")
+        print(f"   Payload: {payload}")
+        print("="*50)
+
         # Run ML Pipeline
         ml_result = process_sensor_json(payload)
         
@@ -62,6 +68,11 @@ def api_telemetry():
             return jsonify(ml_result), 400
             
         safe_result = make_json_safe(ml_result)
+        
+        # Print outgoing ML result to the terminal
+        print(f"🧠 [ML PREDICTION] Risk Level: {map_hazard_class(safe_result)}")
+        print(f"   Anomaly Score: {safe_result.get('anomaly_score')}")
+        print("="*50 + "\n")
         
         # Store in memory
         node_id = safe_result['node_id']
