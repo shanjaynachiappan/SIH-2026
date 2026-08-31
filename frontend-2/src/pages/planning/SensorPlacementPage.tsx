@@ -19,6 +19,7 @@ import { centralApiService } from '../../services/centralApiService';
 import { MineInfo, MinePanel, GatewayInfo, SensorPlacementData, ProposedNode, PanelLifecycleState } from '../../types/central';
 import { MonitoringNode } from '../../types';
 import { CentralMineGISMap } from '../../components/gis/CentralMineGISMap';
+import { RiskZonePolygon } from '../../types/risk';
 import { AddPanelModal } from '../../components/modals/AddPanelModal';
 import { ConfigureCoordinatesModal } from '../../components/modals/ConfigureCoordinatesModal';
 
@@ -43,6 +44,7 @@ export const SensorPlacementPage: React.FC = () => {
   const [nodes, setNodes] = useState<MonitoringNode[]>([]);
   const [placementData, setPlacementData] = useState<SensorPlacementData | null>(null);
   const [proposedPoints, setProposedPoints] = useState<ProposedNode[]>([]);
+  const [riskZones, setRiskZones] = useState<RiskZonePolygon[]>([]);
 
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>(PLACEMENT_ALGORITHMS[0]);
   const [isRunningOptimizer, setIsRunningOptimizer] = useState(false);
@@ -104,6 +106,7 @@ export const SensorPlacementPage: React.FC = () => {
         setPlacementData(place);
         setProposedPoints(place.proposedPoints || []);
         if (place.algorithmUsed) setSelectedAlgorithm(place.algorithmUsed);
+        setRiskZones(centralApiService.getRiskZonesGeoJSON(selectedMineId, selectedPanelId));
       }
     };
 
@@ -196,6 +199,9 @@ export const SensorPlacementPage: React.FC = () => {
 
       setPlacementData(place);
       setProposedPoints(place.proposedPoints || []);
+      // Real risk-zone polygons computed by the same pipeline run --
+      // this is what makes the map show the actual algorithm output.
+      setRiskZones(centralApiService.getRiskZonesGeoJSON(selectedMineId, selectedPanelId));
       setIsRunningOptimizer(false);
 
       const updatedPanel = await centralApiService.getPanelById(selectedMineId, selectedPanelId);
@@ -583,6 +589,7 @@ export const SensorPlacementPage: React.FC = () => {
             gateways={gateways}
             nodes={nodes}
             proposedNodes={proposedPoints}
+            realRiskZones={riskZones}
             selectedMineId={selectedMineId}
             selectedPanelId={panel.id}
             heightClass="h-[500px]"

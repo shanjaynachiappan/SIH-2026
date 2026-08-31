@@ -46,9 +46,19 @@ const candidates = riskGrid.features.map((f) => {
 // Sort by risk_score descending so highest-risk candidates get placement priority
 candidates.sort((a, b) => b.properties.risk_score - a.properties.risk_score);
 
+// NEW: confidence-aware spacing -- Low-confidence zones (where the theory
+// is least trustworthy) get HALVED spacing, so more Lite/relay coverage
+// gets placed there as compensation, instead of trusting a sparse
+// theory-only prediction at face value.
+function effectiveSpacing(cand) {
+  const base = MIN_SPACING[cand.properties.node_tier];
+  if (cand.properties.confidence_tier === "Low") return base * 0.5;
+  return base;
+}
+
 const placed = [];
 candidates.forEach((cand) => {
-  const spacing = MIN_SPACING[cand.properties.node_tier];
+  const spacing = effectiveSpacing(cand);
   const tooClose = placed.some((p) => {
     if (p.properties.node_tier !== cand.properties.node_tier) return false;
     return turf.distance(p, cand, { units: "meters" }) < spacing;
@@ -56,6 +66,12 @@ candidates.forEach((cand) => {
   if (!tooClose) {
     placed.push(cand);
   }
+});
+
+// Assign sequential node_id -- consumed directly by both dashboards'
+// GeoJSON popups (NodePlacementMap.tsx expects f.properties.node_id).
+placed.forEach((p, idx) => {
+  p.properties.node_id = `N-${(idx + 1).toString().padStart(3, "0")}`;
 });
 
 const output = { type: "FeatureCollection", features: placed };

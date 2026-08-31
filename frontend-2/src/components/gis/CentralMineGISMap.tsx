@@ -18,6 +18,12 @@ interface CentralMineGISMapProps {
   gateways: GatewayInfo[];
   nodes: MonitoringNode[];
   proposedNodes?: ProposedNode[];
+  // Real risk-zone polygons from the sensor-placement API (already transformed
+  // to Leaflet [lat,lng] coords via geojsonRiskZonesToPolygons). When provided
+  // and non-empty, these render instead of the built-in mock risk zones below --
+  // this is what makes the map show the ACTUAL algorithm output after
+  // "Generate Placement" runs, not a placeholder.
+  realRiskZones?: RiskZonePolygon[];
   selectedMineId?: string;
   selectedPanelId?: string;
   selectedGatewayId?: string;
@@ -106,6 +112,7 @@ export const CentralMineGISMap: React.FC<CentralMineGISMapProps> = ({
   gateways,
   nodes,
   proposedNodes = [],
+  realRiskZones = [],
   selectedMineId,
   selectedPanelId: propSelectedPanelId,
   selectedGatewayId: propSelectedGatewayId,
@@ -427,7 +434,7 @@ export const CentralMineGISMap: React.FC<CentralMineGISMapProps> = ({
           )}
 
           {/* Risk Zones Overlay */}
-          <RiskZones zones={riskZones} />
+          <RiskZones zones={realRiskZones.length > 0 ? realRiskZones : riskZones} />
 
           {/* Panel Boundaries Layer */}
           {showPanels && panels.map(panel => {

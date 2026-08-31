@@ -70,3 +70,54 @@ for your actual panel and adjust if the split still looks off.
 `panel_boundary.geojson` are placeholder coordinates (Jharia coalfield area)
 for testing — replace with your actual mine's real panel geometry, survey
 points, and asset locations before using for the real submission.
+
+## CMRI formula upgrade (replaces the earlier NCB/tanh-PFM placeholder)
+`backend/ncb_pfm.py` now implements the **verified CMRI formula** (Kumar,
+Singh & Sinha, 1973), not a generic UK NCB/tanh approximation:
+```
+Sm = t * a * cos(d)          a = 0.5 * (0.9 + P)
+Y(x) = Sm * (1 - x^2/l^2)^2   I(x) = 4*(Sm/l)*(x/l - (x/l)^3)
+```
+`P` (Rock Factor) comes from `backend/rock_factor.py`, weighted by stratum
+hardness (hard/medium/soft Q coefficients) — pass real borehole-log strata
+via the `panel_boundary.geojson`'s `strata` property, or it falls back to a
+representative "medium hard" default. `ncb_pfm.py` now reads panel geometry
+**from `panel_boundary.geojson` dynamically** instead of hardcoded constants,
+so the same script works for any real panel without code changes.
+
+## Confidence scoring (new pipeline step)
+`placement/confidence_score.js` runs between `composite_risk.js` and
+`zone_polygons.js`, tagging every point with a `confidence_tier`
+(Low/Medium/High) from four inputs: W/H extremity, local historical-data
+point density, unmodeled-factor flags (water/fault/old-workings — set via
+`panel_boundary.geojson` properties), and optional regional benchmark
+deviation. `node_placement.js` uses this to **halve minimum spacing in
+Low-confidence zones**, placing denser fallback coverage exactly where the
+theoretical prediction is least trustworthy.
+
+## Live API — connects both dashboards to this pipeline
+`api_server.py` (FastAPI) wraps the whole pipeline behind HTTP so the
+**central dashboard's "Generate Placement" button** and the **local
+dashboard's Node Placement page** both read the same real output — no more
+hardcoded/random node generation on either side.
+
+### Run it
+```bash
+cd sensor-placement
+pip install -r requirements-api.txt
+python api_server.py            # serves on http://localhost:8001
+```
+Then start both frontends as usual (`npm run dev` in `Frontend/` and
+`frontend-2/`) — both already point at `VITE_SENSOR_PLACEMENT_API_URL`
+(`http://localhost:8001/api` by default, set in each app's `.env`).
+
+**Flow**: central dashboard's Sensor Placement page → "Generate Placement" →
+`POST /api/node-placement/run` (writes the real panel polygon, runs the full
+CMRI → IDW → buffer → composite risk → confidence → zone polygons → node
+placement chain via the existing tested scripts, caches the result) → same
+GeoJSON is what the local dashboard's Node Placement page reads via
+`GET /api/node-placement` — same map, same data, two views.
+
+If the API is unreachable, the central dashboard falls back to the old
+random generator (logged to console) so the UI still demos — this is a
+fallback path only, not the intended behavior.

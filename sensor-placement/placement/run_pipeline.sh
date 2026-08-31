@@ -20,6 +20,10 @@ echo "== Step 5: Composite risk scoring =="
 node composite_risk.js
 
 echo ""
+echo "== Step 5.5: Confidence scoring =="
+node confidence_score.js
+
+echo ""
 echo "== Step 6: Risk zone polygons =="
 node zone_polygons.js
 
