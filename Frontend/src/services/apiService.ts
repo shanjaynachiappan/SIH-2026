@@ -1,11 +1,11 @@
 import { MonitoringNode } from '../types';
 import { RiskZonePolygon, RiskCategory } from '../types/risk';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://localhost:5000/api';
 
 export async function fetchLiveNodes(): Promise<MonitoringNode[]> {
   try {
-    const res = await fetch(`${API_BASE}/ml/nodes`);
+    const res = await fetch(`${API_BASE}/ml/nodes`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     
@@ -16,7 +16,7 @@ export async function fetchLiveNodes(): Promise<MonitoringNode[]> {
     // We should fetch each node to get full data.
     const fullNodes = await Promise.all(
       data.map(async (n: any) => {
-        const detailRes = await fetch(`${API_BASE}/ml/nodes/${n.node_id}`);
+        const detailRes = await fetch(`${API_BASE}/ml/nodes/${n.node_id}`, { cache: 'no-store' });
         if (!detailRes.ok) return null;
         const detail = await detailRes.json();
         
@@ -57,7 +57,7 @@ export async function fetchLiveNodes(): Promise<MonitoringNode[]> {
 
 export async function fetchLiveZones(): Promise<RiskZonePolygon[]> {
   try {
-    const res = await fetch(`${API_BASE}/ml/risk-zones`);
+    const res = await fetch(`${API_BASE}/ml/risk-zones`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     
@@ -87,7 +87,7 @@ export async function fetchLiveZones(): Promise<RiskZonePolygon[]> {
 
 export async function fetchLiveAlerts(): Promise<any[]> {
   try {
-    const res = await fetch(`${API_BASE}/ml/alerts`);
+    const res = await fetch(`${API_BASE}/ml/alerts`, { cache: 'no-store' });
     if (!res.ok) return [];
     return await res.json();
   } catch (error) {

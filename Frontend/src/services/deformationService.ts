@@ -19,7 +19,7 @@ export function calculateIDW(
   const maxRange = Math.max(latRange, lngRange);
   const step = maxRange / gridResolution;
 
-  const validNodes = nodes.filter(n => n.riskScore !== undefined);
+  const validNodes = nodes.filter(n => n.displacement !== undefined);
   const grid: GridCell[] = [];
 
   for (let lat = minLat; lat <= maxLat; lat += step) {
@@ -33,11 +33,11 @@ export function calculateIDW(
         const dist = Math.sqrt(Math.pow(n.latitude - lat, 2) + Math.pow(n.longitude - lng, 2));
         if (dist === 0) {
           exactMatch = true;
-          exactValue = n.riskScore!;
+          exactValue = n.displacement!;
           break;
         }
         const weight = 1 / Math.pow(dist, power);
-        numerator += weight * n.riskScore!;
+        numerator += weight * n.displacement!;
         denominator += weight;
       }
 

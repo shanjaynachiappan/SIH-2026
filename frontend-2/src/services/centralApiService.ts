@@ -29,6 +29,8 @@ import {
 const STORAGE_KEY_PANELS = 'mineguard_panels_v3';
 const STORAGE_KEY_PLACEMENTS = 'mineguard_placements_v3';
 
+const API_BASE = 'http://localhost:5000/api';
+
 class CentralApiService {
   private minesState: MineInfo[] = [...centralMinesList];
   private panelsState: MinePanel[] = [];
@@ -214,7 +216,48 @@ class CentralApiService {
     risk?: string;
     search?: string;
   }): Promise<MonitoringNode[]> {
-    let result = [...this.nodesState];
+    let result: MonitoringNode[] = [];
+    try {
+      const res = await fetch(`${API_BASE}/ml/nodes`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        const fullNodes = await Promise.all(
+          data.map(async (n: any) => {
+            const detailRes = await fetch(`${API_BASE}/ml/nodes/${n.node_id}`, { cache: 'no-store' });
+            if (!detailRes.ok) return null;
+            const detail = await detailRes.json();
+            const statusStr = detail.final_risk ? detail.final_risk.toLowerCase() : 'normal';
+            const latestData = detail.latest_sensor_data || {};
+            
+            return {
+              id: n.node_id,
+              name: n.node_id,
+              mineId: 'MINE-01',
+              panelId: 'P-01',
+              gatewayId: 'GW-01',
+              nodeType: 'FULL',
+              nodeTier: 'Tier-1',
+              latitude: detail.latitude || 23.752,
+              longitude: detail.longitude || 86.411,
+              status: statusStr,
+              riskScore: detail.lstm_probabilities ? detail.lstm_probabilities.CRITICAL : 0,
+              riskConfidence: detail.lstm_probabilities ? Math.max(detail.lstm_probabilities.NORMAL, detail.lstm_probabilities.WARNING, detail.lstm_probabilities.CRITICAL) : 0,
+              battery: latestData.battery_level !== undefined ? latestData.battery_level : 95,
+              lastUpdated: detail.timestamp || detail.last_update,
+              displacement: latestData.displacement_mm,
+              tilt: latestData.tilt_magnitude_deg,
+              vibration: latestData.acceleration_mps2,
+              crackDetected: latestData.crack_detected === 1,
+              finalRisk: detail.final_risk,
+            } as MonitoringNode;
+          })
+        );
+        result = fullNodes.filter(n => n !== null) as MonitoringNode[];
+      }
+    } catch (e) {
+      console.warn("Could not fetch real nodes from backend, falling back to mock", e);
+      result = [...this.nodesState];
+    }
 
     if (filters) {
       if (filters.mineId && filters.mineId !== 'ALL') {
@@ -515,7 +558,34 @@ class CentralApiService {
     status?: string;
     search?: string;
   }): Promise<CentralAlert[]> {
-    let result = [...this.alertsState];
+    let result: CentralAlert[] = [];
+    try {
+      const res = await fetch(`${API_BASE}/ml/alerts`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        result = data.map((a: any) => {
+           return {
+             id: a.id,
+             severity: a.severity,
+             title: a.title,
+             message: a.description,
+             mineId: 'MINE-01',
+             panelId: 'P-01',
+             gatewayId: 'GW-01',
+             nodeId: a.nodeId,
+             recommendedAction: 'Inspect node immediately based on ML risk scores.',
+             timestamp: a.timestamp,
+             status: 'active',
+             type: 'system'
+           } as CentralAlert;
+        });
+      } else {
+        result = [...this.alertsState];
+      }
+    } catch (e) {
+      console.warn("Could not fetch real alerts from backend, falling back to mock", e);
+      result = [...this.alertsState];
+    }
 
     if (filters) {
       if (filters.mineId && filters.mineId !== 'all') {
@@ -540,7 +610,7 @@ class CentralApiService {
         result = result.filter(a => 
           a.title.toLowerCase().includes(q) || 
           a.message.toLowerCase().includes(q) ||
-          a.nodeId?.toLowerCase().includes(q) ||
+          (a.nodeId || '').toLowerCase().includes(q) ||
           a.panelId.toLowerCase().includes(q)
         );
       }

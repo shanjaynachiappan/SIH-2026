@@ -21,3 +21,24 @@ yarn-error.log*
 # System files
 .DS_Store
 Thumbs.db
+
+# Virtual environment
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.~lock.*
+
+# Generated Outputs
+mineguard_dashboard_output.csv
+mineguard_gis_node_output.csv
+mineguard_node_output.json
+final_zone_risk_output.csv
