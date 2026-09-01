@@ -89,7 +89,7 @@ def process_sensor_json(payload: dict) -> dict:
     
     # 1. Prepare row and manage history
     new_row = pd.DataFrame([payload])
-    new_row['timestamp'] = pd.to_datetime(new_row['timestamp'])
+    new_row['timestamp'] = pd.to_datetime(new_row['timestamp']).dt.tz_localize(None)
     new_row['node_type'] = tier
     
     if node_id not in NODE_HISTORY:
@@ -138,6 +138,8 @@ def process_sensor_json(payload: dict) -> dict:
     # 4. Strict Conditional Preservation: Restore explicitly provided values
     last_idx = len(ds2[tier]) - 1
     for key in provided_keys:
+        if key == 'timestamp':
+            continue
         if key in ds2[tier].columns:
             # Overwrite the feature-engineered value with the raw provided value
             ds2[tier].at[last_idx, key] = payload[key]

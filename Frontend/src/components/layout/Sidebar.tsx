@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Radio, 
-  Bell, 
-  BarChart2, 
+import {
+  LayoutDashboard,
+  Radio,
+  Bell,
+  BarChart2,
   Settings,
   Hexagon
 } from 'lucide-react';
@@ -21,8 +21,8 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
   const { user: currentUser } = useAuth();
-  const gatewayBadge = currentUser 
-    ? `${currentUser.gateway_id} • ${currentUser.mesh_id || 'MESH-01'} • ${currentUser.panel_id}` 
+  const gatewayBadge = currentUser
+    ? `${currentUser.gateway_id} • ${currentUser.mesh_id || 'MESH-01'} • ${currentUser.panel_id}`
     : 'GW-01 • MESH-01 • P-01';
 
   return (
@@ -117,7 +117,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Footer */}
       <div className="px-6 pb-6 pt-2">
-        <p className="text-[10px] text-slate-400">© 2025 MineGuard<br/>All rights reserved.</p>
+        <p className="text-[10px] text-slate-400">© 2025 MineGuard<br />All rights reserved.</p>
       </div>
     </aside>
   );

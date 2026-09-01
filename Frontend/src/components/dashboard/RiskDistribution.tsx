@@ -11,7 +11,7 @@ export const RiskDistribution: React.FC<RiskDistributionProps> = ({ data, total 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-card p-5 h-full flex flex-col">
       <h2 className="text-base font-bold text-slate-800 mb-4">Risk Distribution</h2>
-      
+
       <div className="flex-1 flex items-center justify-between">
         <div className="relative w-32 h-32 flex-shrink-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -37,7 +37,7 @@ export const RiskDistribution: React.FC<RiskDistributionProps> = ({ data, total 
             <span className="text-[10px] font-semibold text-slate-400">Total</span>
           </div>
         </div>
-        
+
         <div className="ml-4 flex-1 space-y-2">
           {data.map((item, idx) => (
             <div key={idx} className="flex items-center justify-between text-xs">

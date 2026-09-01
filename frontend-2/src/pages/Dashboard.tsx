@@ -16,6 +16,26 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [nodes, setNodes] = useState<MonitoringNode[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedTime = useMemo(() => {
+    const dateStr = currentTime.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const timeStr = currentTime.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    return `${dateStr}, ${timeStr}`;
+  }, [currentTime]);
 
   useEffect(() => {
     let isMounted = true;
@@ -90,7 +110,7 @@ export const Dashboard: React.FC = () => {
         </div>
         <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-700 font-medium shadow-sm w-full sm:w-auto justify-center">
           <Calendar className="w-4 h-4 text-slate-500" />
-          <span>21 May 2026, 10:30 AM</span>
+          <span>{formattedTime}</span>
           <span className="text-slate-400 text-[10px] ml-2">⌄</span>
         </div>
       </div>
