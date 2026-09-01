@@ -71,8 +71,18 @@ def cmri_tilt(x, Sm, l):
     return 4 * (Sm / l) * (ratio - ratio ** 3)
 
 
+def cmri_horizontal_displacement(I, H, angle_of_draw_deg, k=3.5):
+    """n = k*H*tan(theta)*I -- verified CMRI horizontal displacement formula.
+    theta = angle of draw. Real Indian coalfields have a NARROWER angle of
+    draw (15-30 deg, sandstone shear) than UK's 35-45 deg (soft shale) --
+    use the Indian-calibrated range, default midpoint 20 deg, not a UK value."""
+    theta_rad = np.radians(angle_of_draw_deg)
+    return k * H * np.tan(theta_rad) * I
+
+
 def build_grid(panel_path="../data/panel_boundary.geojson",
-                grid_half_extent_m=300.0, grid_step_m=15.0):
+                grid_half_extent_m=None, grid_step_m=None,
+                angle_of_draw_deg=20.0):
     panel = load_panel(panel_path)
     W, H, t, d_deg = panel["W"], panel["H"], panel["t"], panel["d_deg"]
     center_lon, center_lat = panel["center_lon"], panel["center_lat"]
@@ -84,12 +94,39 @@ def build_grid(panel_path="../data/panel_boundary.geojson",
     Sm = t * a * np.cos(d_rad)   # max subsidence (meters)
     l = W / 2.0                  # distance to zero-subsidence point (half panel width)
 
+    # BUG FIX: the evaluation grid extent used to be a fixed 300m regardless
+    # of panel size. For panels wider than ~600m, l (=W/2) exceeds the grid
+    # extent, so the grid never reaches past the flat CENTER of the trough --
+    # it never samples the curved edges where tilt/strain actually vary.
+    # Result: strain stays near-zero everywhere, no point ever crosses the
+    # tensile threshold, risk_level never reaches "High" -- every node
+    # silently defaults to Lite tier, regardless of true risk.
+    # Fix: scale the grid extent to the real panel width (with a floor for
+    # small panels), so the grid always reaches past the trough edge.
+    if grid_half_extent_m is None:
+        grid_half_extent_m = max(300.0, W * 0.75)
+    if grid_step_m is None:
+        # keep point density roughly constant across panel sizes instead of
+        # ballooning point count on very large panels
+        grid_step_m = max(15.0, grid_half_extent_m / 40.0)
+
     xs = np.arange(-grid_half_extent_m, grid_half_extent_m + grid_step_m, grid_step_m)
     ys = np.arange(-grid_half_extent_m, grid_half_extent_m + grid_step_m, grid_step_m)
 
     S_x = cmri_profile(xs, Sm, l)
     tilt_x = cmri_tilt(xs, Sm, l)
-    strain_x = np.gradient(tilt_x, xs)  # signed -- positive = tensile, negative = compressive
+
+    # BUG FIX: strain was previously computed as d(tilt)/dx directly -- that
+    # is CURVATURE (units: radians/meter), not true horizontal strain
+    # (dimensionless, mm/m). The real geotechnical definition derives
+    # horizontal strain from the HORIZONTAL DISPLACEMENT function, not the
+    # tilt/slope function directly. Fixed: n(x) = k*H*tan(angle_of_draw)*I(x)
+    # [horizontal displacement, meters] -> strain(x) = d(n)/dx [dimensionless].
+    # This also means the crack threshold must be compared against a properly
+    # dimensionless strain -- see node_placement.js's TENSILE_STRAIN_THRESHOLD_UE,
+    # now citing Kratzsch (1983): ground cracks at ~5-7 mm/m (5000-7000 microstrain).
+    n_x = cmri_horizontal_displacement(tilt_x, H, angle_of_draw_deg)
+    strain_x = np.gradient(n_x, xs)  # dimensionless (m/m), signed: + = tensile, - = compressive
 
     m_per_lon = meters_per_deg_lon(center_lat)
 
@@ -114,7 +151,8 @@ def build_grid(panel_path="../data/panel_boundary.geojson",
             })
 
     meta = {"W": W, "H": H, "t": t, "d_deg": d_deg, "P": P, "a": a,
-            "Sm_mm": round(Sm * 1000, 2), "l": l}
+            "Sm_mm": round(Sm * 1000, 2), "l": l,
+            "grid_half_extent_m": grid_half_extent_m, "grid_step_m": grid_step_m}
     return {"type": "FeatureCollection", "features": features}, meta
 
 
@@ -133,3 +171,5 @@ if __name__ == "__main__":
           f"(W/H={meta['W']/meta['H']:.2f})")
     print(f"CMRI: Rock Factor P={meta['P']:.3f}, subsidence factor a={meta['a']:.3f}, "
           f"Sm={meta['Sm_mm']}mm")
+    print(f"Grid: half-extent={meta['grid_half_extent_m']:.1f}m, step={meta['grid_step_m']:.1f}m "
+          f"(l={meta['l']:.1f}m -- grid must exceed l to reach the trough edge)")

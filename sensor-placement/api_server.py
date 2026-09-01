@@ -66,6 +66,11 @@ class PanelInput(BaseModel):
     waterRiskFlag: bool = False
     faultRiskFlag: bool = False
     oldWorkingsFlag: bool = False
+    # Optional REAL data -- when supplied, used as-is instead of the
+    # auto-generated mock fallback below. Same GeoJSON-feature-property
+    # shape as historical_subsidence_points.geojson / surface_assets.geojson.
+    historicalPoints: Optional[List[dict]] = None   # [{lat,lng,subsidence_mm}, ...]
+    surfaceAssets: Optional[List[dict]] = None        # [{lat,lng,name,type,weight}, ...]
 
 
 class RunRequest(BaseModel):
@@ -87,7 +92,7 @@ def polygon_width_m(coords_latlng):
 
 
 def write_panel_geojson(panel: PanelInput):
-    width_m, _ = polygon_width_m(panel.coordinates)
+    width_m, height_m = polygon_width_m(panel.coordinates)
     # GeoJSON polygon needs [lon, lat] order and a closed ring
     ring = [[c[1], c[0]] for c in panel.coordinates]
     if ring[0] != ring[-1]:
@@ -112,7 +117,92 @@ def write_panel_geojson(panel: PanelInput):
     }
     with open(DATA_DIR / "panel_boundary.geojson", "w") as f:
         json.dump(geojson, f)
-    return width_m
+    return width_m, height_m
+
+
+def _panel_center(panel: PanelInput):
+    lats = [c[0] for c in panel.coordinates]
+    lngs = [c[1] for c in panel.coordinates]
+    return sum(lats) / len(lats), sum(lngs) / len(lngs)
+
+
+def write_historical_points(panel: PanelInput, width_m: float, height_m: float):
+    """Writes historical_subsidence_points.geojson -- uses REAL points if the
+    caller supplied them (panel.historicalPoints), otherwise auto-generates a
+    plausible scattered cluster CENTERED ON THIS PANEL, scaled to its size.
+
+    BUG FIX: previously this file was a fixed sample near one hardcoded
+    location (Jharia area). Any panel drawn elsewhere (e.g. Raniganj area,
+    ~90km away) had ZERO real nearby points regardless of density, so IDW's
+    contribution to composite risk was always near-zero there -- capping the
+    risk score well below the "High" threshold and silently producing
+    Lite-tier-only placement, independent of the grid-extent bug fixed
+    separately in ncb_pfm.py. Centering the mock data on the actual panel
+    fixes this for any panel location, not just the original test one.
+    """
+    import random
+    random.seed(f"{panel.mineId}_{panel.panelId}")  # deterministic per panel
+
+    if panel.historicalPoints:
+        features = [{
+            "type": "Feature",
+            "properties": {"measured_subsidence_mm": p.get("subsidence_mm", 10)},
+            "geometry": {"type": "Point", "coordinates": [p["lng"], p["lat"]]},
+        } for p in panel.historicalPoints]
+    else:
+        center_lat, center_lng = _panel_center(panel)
+        # spread points across roughly the panel's own footprint + a margin,
+        # so density stays reasonable regardless of panel size
+        lat_spread = (height_m / 111_320.0) * 1.3
+        lng_spread = (width_m / (111_320.0 * 0.92)) * 1.3  # rough cos(lat) correction
+        features = []
+        for _ in range(10):
+            lat = center_lat + random.uniform(-lat_spread / 2, lat_spread / 2)
+            lng = center_lng + random.uniform(-lng_spread / 2, lng_spread / 2)
+            subsidence = round(random.uniform(2, 18), 1)  # plausible mm range
+            features.append({
+                "type": "Feature",
+                "properties": {"measured_subsidence_mm": subsidence},
+                "geometry": {"type": "Point", "coordinates": [lng, lat]},
+            })
+
+    with open(DATA_DIR / "historical_subsidence_points.geojson", "w") as f:
+        json.dump({"type": "FeatureCollection", "features": features}, f)
+
+
+def write_surface_assets(panel: PanelInput, width_m: float, height_m: float):
+    """Same fix as write_historical_points, for surface_assets.geojson."""
+    import random
+    random.seed(f"{panel.mineId}_{panel.panelId}_assets")
+
+    if panel.surfaceAssets:
+        features = [{
+            "type": "Feature",
+            "properties": {
+                "name": a.get("name", "Asset"),
+                "type": a.get("type", "settlement"),
+                "weight": a.get("weight", 2),
+            },
+            "geometry": {"type": "Point", "coordinates": [a["lng"], a["lat"]]},
+        } for a in panel.surfaceAssets]
+    else:
+        center_lat, center_lng = _panel_center(panel)
+        lat_spread = (height_m / 111_320.0) * 1.5
+        lng_spread = (width_m / (111_320.0 * 0.92)) * 1.5
+        asset_types = [("Village", "settlement", 3), ("Haul Road", "road", 2),
+                        ("Village", "settlement", 3)]
+        features = []
+        for name, atype, weight in asset_types:
+            lat = center_lat + random.uniform(-lat_spread / 2, lat_spread / 2)
+            lng = center_lng + random.uniform(-lng_spread / 2, lng_spread / 2)
+            features.append({
+                "type": "Feature",
+                "properties": {"name": name, "type": atype, "weight": weight},
+                "geometry": {"type": "Point", "coordinates": [lng, lat]},
+            })
+
+    with open(DATA_DIR / "surface_assets.geojson", "w") as f:
+        json.dump({"type": "FeatureCollection", "features": features}, f)
 
 
 def run_pipeline():
@@ -174,7 +264,9 @@ def health():
 def run_node_placement(req: RunRequest):
     panel = req.panel
     try:
-        width_m = write_panel_geojson(panel)
+        width_m, height_m = write_panel_geojson(panel)
+        write_historical_points(panel, width_m, height_m)
+        write_surface_assets(panel, width_m, height_m)
         run_pipeline()
         response = build_response(panel, width_m)
         response["candidate_count"] = len(load_geojson("composite_risk.geojson")["features"])

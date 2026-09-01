@@ -15,7 +15,15 @@ const getDeformationColor = (value: number) => {
 };
 
 const getOpacity = (value: number) => {
-  return Math.min(0.6, 0.3 + (value / 200));
+  // BUG FIX: was `0.3 + value/200`, capped at 0.6 -- meant even a
+  // near-zero-deformation cell rendered at 30% opacity, and the whole
+  // 24x24 grid (576 large squares) painted opaque color across the ENTIRE
+  // bounding box regardless of whether that area had any real signal,
+  // looking like a solid wall covering the map. Now: near-zero cells are
+  // (almost) fully transparent, and max opacity is lower so real node
+  // markers/risk zones underneath stay visible.
+  if (value < 10) return 0; // don't render "normal" cells at all
+  return Math.min(0.35, 0.08 + (value / 250));
 };
 
 export const DeformationLayer: React.FC<DeformationLayerProps> = ({ grid, step }) => {
@@ -23,7 +31,8 @@ export const DeformationLayer: React.FC<DeformationLayerProps> = ({ grid, step }
     <>
       {grid.map((cell, idx) => {
         const opacity = getOpacity(cell.value);
-        
+        if (opacity <= 0) return null; // skip rendering near-zero cells entirely
+
         const halfStep = step / 2;
         const positions: [number, number][] = [
           [cell.latitude - halfStep, cell.longitude - halfStep],

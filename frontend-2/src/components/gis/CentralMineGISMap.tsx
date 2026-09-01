@@ -132,7 +132,12 @@ export const CentralMineGISMap: React.FC<CentralMineGISMapProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // Layer visibility toggles
-  const [showDeformation, setShowDeformation] = useState(true);
+  const [showDeformation, setShowDeformation] = useState(false); // was: true --
+  // this rendered a wall-to-wall opaque orange grid over the ENTIRE hardcoded
+  // 5km bounding box by default on every load, drowning out the actual
+  // sensor-placement nodes/risk zones underneath it. Off by default now;
+  // the user can still toggle it on when they specifically want the live
+  // deformation heatmap.
   const [showPanels, setShowPanels] = useState(true);
   const [showGateways, setShowGateways] = useState(true);
   const [showNodes, setShowNodes] = useState(true);

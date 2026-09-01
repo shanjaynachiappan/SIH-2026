@@ -155,6 +155,30 @@ export const EditPanelGeometryModal: React.FC<EditPanelGeometryModalProps> = ({
             Applying coordinates converts dimensions to an exact geographic polygon centered on <strong>({centerLat}, {centerLng})</strong>. The GIS map will redraw live!
           </div>
 
+          {/* Sanity-check warning: the CMRI subsidence model's evaluation grid
+              and validated W/H range degrade for unrealistically large/extreme
+              panels -- e.g. a 1.5km-wide panel was found to produce ZERO
+              Full/Crack tier nodes (everything defaulted to Lite) because the
+              trough profile stays too flat across a normal grid extent, and
+              W/H falls outside the model's validated 0.5-3 range. This won't
+              block saving, but flags it before it silently degrades the
+              placement algorithm's output. */}
+          {(widthM > 600 || heightM > 600 || widthM / heightM > 3 || heightM / widthM > 3) && (
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-[11px] text-amber-800 flex items-start space-x-2">
+              <span className="font-bold">⚠ Unrealistic panel size:</span>
+              <span>
+                Real coal panels are typically 100–300m wide. This panel
+                ({widthM}m × {heightM}m, W/H ratio {(widthM / heightM).toFixed(2)})
+                is outside the CMRI subsidence model's validated W/H range (0.5–3)
+                {(widthM > 600 || heightM > 600) && ' and larger than the model can reliably evaluate'}.
+                Sensor placement may default to Lite-tier-only coverage (no Full/Crack
+                nodes) since the algorithm can't resolve real risk variation across a
+                panel this size. Consider splitting this into smaller sub-panels, or
+                proceed and treat the result as low-confidence.
+              </span>
+            </div>
+          )}
+
           <div className="pt-2 flex items-center justify-end space-x-2">
             <button
               type="button"

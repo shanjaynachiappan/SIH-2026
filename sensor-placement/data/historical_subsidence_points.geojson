@@ -1,13 +1,1 @@
-{
-  "type": "FeatureCollection",
-  "features": [
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 12}, "geometry": {"type": "Point", "coordinates": [86.4304, 23.7644]}},
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 8}, "geometry": {"type": "Point", "coordinates": [86.4324, 23.7654]}},
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 3}, "geometry": {"type": "Point", "coordinates": [86.4344, 23.7664]}},
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 15}, "geometry": {"type": "Point", "coordinates": [86.4284, 23.7634]}},
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 6}, "geometry": {"type": "Point", "coordinates": [86.4314, 23.7624]}},
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 2}, "geometry": {"type": "Point", "coordinates": [86.4264, 23.7674]}},
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 10}, "geometry": {"type": "Point", "coordinates": [86.4334, 23.7644]}},
-    {"type": "Feature", "properties": {"measured_subsidence_mm": 4}, "geometry": {"type": "Point", "coordinates": [86.4294, 23.7684]}}
-  ]
-}
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"measured_subsidence_mm": 5.7}, "geometry": {"type": "Point", "coordinates": [86.40855166428517, 23.75222646813759]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 5.4}, "geometry": {"type": "Point", "coordinates": [86.42701524079166, 23.746724792917853]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 13.5}, "geometry": {"type": "Point", "coordinates": [86.42575039248098, 23.746412494087753]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 4.1}, "geometry": {"type": "Point", "coordinates": [86.42461975893904, 23.746056026653534]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 10.5}, "geometry": {"type": "Point", "coordinates": [86.41442279444891, 23.745329928243095]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 3.6}, "geometry": {"type": "Point", "coordinates": [86.40742039618637, 23.73937866133589]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 6.6}, "geometry": {"type": "Point", "coordinates": [86.41827504963183, 23.740387452790863]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 2.2}, "geometry": {"type": "Point", "coordinates": [86.40798587251228, 23.74457067613754]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 9.0}, "geometry": {"type": "Point", "coordinates": [86.41287783592233, 23.74260688016424]}}, {"type": "Feature", "properties": {"measured_subsidence_mm": 11.9}, "geometry": {"type": "Point", "coordinates": [86.41499067881479, 23.757369978627768]}}]}

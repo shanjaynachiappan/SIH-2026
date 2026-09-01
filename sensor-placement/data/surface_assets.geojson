@@ -1,8 +1,1 @@
-{
-  "type": "FeatureCollection",
-  "features": [
-    {"type": "Feature", "properties": {"name": "Village A", "type": "settlement", "weight": 3}, "geometry": {"type": "Point", "coordinates": [86.4310, 23.7650]}},
-    {"type": "Feature", "properties": {"name": "Haul Road", "type": "road", "weight": 2}, "geometry": {"type": "Point", "coordinates": [86.4330, 23.7630]}},
-    {"type": "Feature", "properties": {"name": "Village B", "type": "settlement", "weight": 3}, "geometry": {"type": "Point", "coordinates": [86.4280, 23.7660]}}
-  ]
-}
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"name": "Village", "type": "settlement", "weight": 3}, "geometry": {"type": "Point", "coordinates": [86.41224350644086, 23.75220936543197]}}, {"type": "Feature", "properties": {"name": "Haul Road", "type": "road", "weight": 2}, "geometry": {"type": "Point", "coordinates": [86.42817454945883, 23.759443385750536]}}, {"type": "Feature", "properties": {"name": "Village", "type": "settlement", "weight": 3}, "geometry": {"type": "Point", "coordinates": [86.41248534400194, 23.746109170147538]}}]}

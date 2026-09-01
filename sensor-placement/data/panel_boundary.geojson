@@ -1,16 +1,1 @@
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "properties": {"name": "panel_boundary", "width_m": 150, "depth_m": 100, "extraction_thickness_m": 2.5},
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [86.4290, 23.7630], [86.4318, 23.7630], [86.4318, 23.7658],
-          [86.4290, 23.7658], [86.4290, 23.7630]
-        ]]
-      }
-    }
-  ]
-}
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"name": "panel_boundary", "width_m": 1905.4, "depth_m": 220.0, "extraction_thickness_m": 2.5, "seam_dip_deg": 0.0, "water_risk_flag": false, "fault_risk_flag": false, "old_workings_flag": false}, "geometry": {"type": "Polygon", "coordinates": [[[86.4149, 23.748], [86.421, 23.7564], [86.4283, 23.75], [86.417, 23.7416], [86.4096, 23.748], [86.4149, 23.748]]]}}]}

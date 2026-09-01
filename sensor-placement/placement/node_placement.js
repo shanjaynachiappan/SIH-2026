@@ -24,8 +24,15 @@ const MIN_SPACING = { Full: 40, Lite: 80, Crack: 30 };
 // points (exactly where Full nodes belong -- near the retreat line, in the
 // subsidence-dominant zone) into the Crack tier instead, leaving 0 Full
 // nodes. Using signed strain fixes this.
-const TENSILE_STRAIN_THRESHOLD_UE = 150; // microstrain; tune against your
-// panel's actual strain range (inspect composite_risk_classified.geojson)
+// FIX: previous placeholder value (150 microstrain) was never verified
+// against real geotechnical literature. Correct, citable threshold from
+// Kratzsch, H. (1983), "Mining Subsidence Engineering" (Springer-Verlag) --
+// the standard mining subsidence engineering reference -- ground cracks at
+// a horizontal tensile strain of approximately 5-7 mm/m = 5000-7000
+// microstrain. Using the conservative (lower/earlier-warning) bound: an
+// early-warning system should flag risk at the ONSET of the cited range,
+// not wait for the upper bound.
+const TENSILE_STRAIN_THRESHOLD_UE = 5000; // microstrain (Kratzsch, 1983: 5-7 mm/m)
 
 function tierForRiskLevel(level, isTensileCracking) {
   if (level === "High") return isTensileCracking ? "Crack" : "Full";
